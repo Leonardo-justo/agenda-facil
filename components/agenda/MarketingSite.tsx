@@ -139,6 +139,15 @@ export function MarketingSite() {
           </Link>
         </div>
       </section>
+      <footer className="border-t border-line bg-white px-6 py-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-sm font-black text-muted">
+          <span>Agenda Facil</span>
+          <div className="flex gap-4">
+            <Link href="/privacidade">Privacidade</Link>
+            <Link href="/termos">Termos</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

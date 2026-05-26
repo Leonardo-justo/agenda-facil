@@ -69,8 +69,12 @@ Use `dono@agenda.local` para acessar a central interna da plataforma. Use `admin
 
 ## Proximas evolucoes
 
-- Trocar `localStorage` por banco de dados.
-- Criar planos por assinatura.
-- Adicionar lembretes automaticos.
-- Criar tela de bloqueio de horarios.
-- Adicionar pagamento online para sinal.
+O planejamento detalhado esta em `CHECKLIST.md`.
+
+Prioridade atual:
+
+1. Trocar `localStorage` por Supabase.
+2. Ativar Supabase Auth com e-mail/senha e Google.
+3. Isolar dados por loja com RLS.
+4. Integrar pagamento recorrente.
+5. Evoluir agenda com bloqueios, reagendamento e notificacoes.

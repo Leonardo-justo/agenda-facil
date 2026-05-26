@@ -43,6 +43,22 @@ function writeAccounts(accounts: AuthAccount[]) {
 
 export async function saveStoreAccount(input: { email: string; password: string; ownerName: string; businessSlug: string }) {
   const email = input.email.trim().toLowerCase();
+
+  if (hasSupabaseConfig && supabase) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: input.password,
+      options: {
+        data: {
+          full_name: input.ownerName,
+          business_slug: input.businessSlug,
+          role: "store_owner",
+        },
+      },
+    });
+    if (error) throw new Error(error.message);
+  }
+
   const accounts = readAccounts().filter((account) => account.email !== email);
   accounts.push({
     email,
@@ -72,6 +88,14 @@ export async function validateLogin(emailInput: string, password: string) {
     return { ok: true, path: platformAccount.path };
   }
 
+  if (hasSupabaseConfig && supabase) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      setSession({ email, role: "store" });
+      return { ok: true, path: "/painel" };
+    }
+  }
+
   const account = readAccounts().find((item) => item.email === email);
   if (!account) return { ok: false, error: "Conta nao encontrada." };
 
@@ -96,4 +120,11 @@ export async function signInWithGoogle() {
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function signOut() {
+  if (hasSupabaseConfig && supabase) {
+    await supabase.auth.signOut();
+  }
+  clearSession();
 }

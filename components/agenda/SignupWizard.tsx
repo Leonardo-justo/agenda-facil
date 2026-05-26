@@ -232,6 +232,14 @@ export function SignupWizard() {
                   />
                   Aceito o tratamento dos dados conforme a politica de privacidade e termos de uso do Agenda Facil.
                 </label>
+                <div className="flex flex-wrap gap-3 text-sm font-black">
+                  <Link className="text-brand" href="/privacidade" target="_blank">
+                    Politica de Privacidade
+                  </Link>
+                  <Link className="text-brand" href="/termos" target="_blank">
+                    Termos de Uso
+                  </Link>
+                </div>
                 {created && (
                   <div className="flex items-center gap-2 rounded-card bg-brand/10 p-4 font-black text-brand">
                     <Check size={18} /> Conta criada. Abrindo painel da loja.
