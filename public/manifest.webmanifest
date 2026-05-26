@@ -1,7 +1,7 @@
 {
   "name": "Agenda Facil",
   "short_name": "Agenda",
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f7f2",
   "theme_color": "#0f766e",

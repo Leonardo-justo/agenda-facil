@@ -1,4 +1,9 @@
 node_modules/
+.next/
+out/
+dist/
+coverage/
+tsconfig.tsbuildinfo
 *.log
 .env
 .env.local
