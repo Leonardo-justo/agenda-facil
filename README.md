@@ -14,6 +14,9 @@ SaaS de agenda online para negocios de servicos como salao, barbearia, manicure,
 
 - Site comercial publico para venda do produto.
 - Wizard de cadastro da empresa com usuario, senha, dados da loja, logo e aceite LGPD.
+- Cadastro novo sem herdar dados da demo.
+- Login da loja com e-mail e senha cadastrados.
+- Preparacao para login com Google via Supabase Auth.
 - Planos gratuito, 1 mes, 3 meses e 12 meses.
 - Preparacao para checkout com Mercado Pago, InfinitePay ou Stripe.
 - Login demonstrativo por perfil.

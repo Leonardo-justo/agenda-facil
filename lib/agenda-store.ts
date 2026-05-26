@@ -124,6 +124,10 @@ const seedData: AgendaData = {
   ],
 };
 
+const seedServiceIds = new Set(seedData.services.map((service) => service.id));
+const seedStaffIds = new Set(seedData.staff.map((person) => person.id));
+const seedAppointmentIds = new Set(seedData.appointments.map((appointment) => appointment.id));
+
 function createId(prefix: string) {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -132,8 +136,12 @@ function createId(prefix: string) {
 function normalizeData(data: AgendaData): AgendaData {
   const business = data.business as Partial<Business>;
   const plan = (business.plan ?? "monthly") as PlanCycle;
+  const isDemoBusiness = business.id === businessId || business.slug === "studio-aurora";
   return {
     ...data,
+    services: isDemoBusiness ? data.services : data.services.filter((service) => !seedServiceIds.has(service.id)),
+    staff: isDemoBusiness ? data.staff : data.staff.filter((person) => !seedStaffIds.has(person.id)),
+    appointments: isDemoBusiness ? data.appointments : data.appointments.filter((appointment) => !seedAppointmentIds.has(appointment.id)),
     business: {
       ...data.business,
       logoUrl: business.logoUrl ?? "",
@@ -279,9 +287,9 @@ export function useAgendaStore() {
         active: true,
         createdAt: new Date().toISOString(),
       },
-      services: current.services.map((service) => ({ ...service, businessId: id })),
-      staff: current.staff.map((person) => ({ ...person, businessId: id })),
-      appointments: current.appointments.map((appointment) => ({ ...appointment, businessId: id })),
+      services: [],
+      staff: [],
+      appointments: [],
     }));
   }
 

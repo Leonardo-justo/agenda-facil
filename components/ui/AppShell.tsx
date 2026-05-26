@@ -64,8 +64,12 @@ export function ButtonLink({ href, children }: { href: string; children: ReactNo
   );
 }
 
-export function PrimaryButton({ children }: { children: ReactNode }) {
-  return <button className="min-h-11 rounded-card bg-brand px-4 font-black text-white">{children}</button>;
+export function PrimaryButton({ children, disabled }: { children: ReactNode; disabled?: boolean }) {
+  return (
+    <button disabled={disabled} className="min-h-11 rounded-card bg-brand px-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
+      {children}
+    </button>
+  );
 }
 
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {

@@ -2,26 +2,32 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-
-const accounts = [
-  { email: "dono@agenda.local", password: "admin123", path: "/interno" },
-  { email: "admin@agenda.local", password: "admin123", path: "/painel" },
-];
+import { signInWithGoogle, validateLogin } from "@/lib/auth-store";
 
 export function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("dono@agenda.local");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const account = accounts.find((item) => item.email === email.trim() && item.password === password);
-    if (!account) {
-      setError("E-mail ou senha invalidos.");
+    setLoading(true);
+    setError("");
+    const result = await validateLogin(email, password);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error ?? "E-mail ou senha invalidos.");
       return;
     }
-    router.push(account.path);
+    router.push(result.path ?? "/painel");
+  }
+
+  async function googleLogin() {
+    setError("");
+    const result = await signInWithGoogle();
+    if (!result.ok) setError(result.error ?? "Nao foi possivel entrar com Google.");
   }
 
   return (
@@ -39,16 +45,19 @@ export function LoginPage() {
         <form onSubmit={submit} className="grid content-center gap-4">
           <label>
             E-mail
-            <input value={email} onChange={(event) => setEmail(event.target.value)} />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
           <label>
             Senha
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
-          <button className="min-h-11 rounded-card bg-brand px-4 font-black text-white">Entrar</button>
+          <button className="min-h-11 rounded-card bg-brand px-4 font-black text-white">{loading ? "Validando..." : "Entrar"}</button>
+          <button type="button" onClick={googleLogin} className="min-h-11 rounded-card border border-line bg-white px-4 font-black text-ink">
+            Entrar com Google
+          </button>
           <p className="min-h-6 text-sm font-bold text-red-700">{error}</p>
           <div className="rounded-card border border-line bg-canvas p-3 text-sm text-muted">
-            <strong className="text-ink">Demos:</strong> dono@agenda.local para area interna ou admin@agenda.local para loja.
+            <strong className="text-ink">Area interna:</strong> dono@agenda.local com senha admin123. Lojas novas entram com o e-mail e senha cadastrados.
           </div>
         </form>
       </section>

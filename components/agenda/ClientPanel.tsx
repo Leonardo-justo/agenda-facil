@@ -77,20 +77,26 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
         <Panel>
           <h3 className="mb-4 text-lg font-black">Proximos horarios</h3>
           <div className="grid gap-3">
-            {nextAppointments.map((appointment) => (
-              <AppointmentMini key={appointment.id} store={store} appointmentId={appointment.id} />
-            ))}
+            {nextAppointments.length ? (
+              nextAppointments.map((appointment) => <AppointmentMini key={appointment.id} store={store} appointmentId={appointment.id} />)
+            ) : (
+              <EmptyState>Nenhum horario ainda. Cadastre servicos e equipe para comecar a receber agendamentos.</EmptyState>
+            )}
           </div>
         </Panel>
         <Panel>
           <h3 className="mb-4 text-lg font-black">Resumo por profissional</h3>
           <div className="grid gap-3">
-            {store.staff.map((person) => (
-              <div key={person.id} className="rounded-card border border-line p-3">
-                <strong>{person.name}</strong>
-                <p className="text-sm text-muted">{store.appointments.filter((item) => item.staffId === person.id).length} horarios registrados</p>
-              </div>
-            ))}
+            {store.staff.length ? (
+              store.staff.map((person) => (
+                <div key={person.id} className="rounded-card border border-line p-3">
+                  <strong>{person.name}</strong>
+                  <p className="text-sm text-muted">{store.appointments.filter((item) => item.staffId === person.id).length} horarios registrados</p>
+                </div>
+              ))
+            ) : (
+              <EmptyState>Nenhum profissional cadastrado.</EmptyState>
+            )}
           </div>
         </Panel>
       </div>
@@ -130,6 +136,7 @@ function Appointments({
   const [serviceId, setServiceId] = useState(store.activeServices[0]?.id ?? "");
   const [staffId, setStaffId] = useState(store.activeStaff[0]?.id ?? "");
   const slots = store.availableSlots(date, staffId);
+  const canCreateAppointment = store.activeServices.length > 0 && store.activeStaff.length > 0;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -152,7 +159,8 @@ function Appointments({
     <div className="grid grid-cols-[360px_minmax(0,1fr)] gap-4 max-lg:grid-cols-1">
       <Panel>
         <h3 className="mb-4 text-lg font-black">Novo agendamento</h3>
-        <form onSubmit={submit} className="grid gap-3">
+        {!canCreateAppointment && <EmptyState>Cadastre pelo menos um servico e um profissional antes de criar horarios.</EmptyState>}
+        <form onSubmit={submit} className="mt-3 grid gap-3">
           <label>
             Cliente
             <input name="client" required />
@@ -195,7 +203,7 @@ function Appointments({
               </select>
             </label>
           </div>
-          <PrimaryButton>Salvar horario</PrimaryButton>
+          <PrimaryButton disabled={!canCreateAppointment}>Salvar horario</PrimaryButton>
         </form>
       </Panel>
       <Panel>
@@ -245,6 +253,13 @@ function Appointments({
                   </tr>
                 );
               })}
+              {!filtered.length && (
+                <tr>
+                  <td className="border-b border-line p-3 text-sm font-bold text-muted" colSpan={5}>
+                    Nenhum agendamento encontrado para o filtro atual.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -290,19 +305,23 @@ function Services({ store }: { store: ReturnType<typeof useAgendaStore> }) {
       <Panel>
         <h3 className="mb-4 text-lg font-black">Servicos cadastrados</h3>
         <div className="grid gap-3">
-          {store.services.map((service) => (
-            <div key={service.id} className="flex items-center justify-between gap-3 rounded-card border border-line p-3">
-              <div>
-                <strong>{service.name}</strong>
-                <p className="text-sm text-muted">
-                  {service.duration} min - {money(service.price)}
-                </p>
+          {store.services.length ? (
+            store.services.map((service) => (
+              <div key={service.id} className="flex items-center justify-between gap-3 rounded-card border border-line p-3">
+                <div>
+                  <strong>{service.name}</strong>
+                  <p className="text-sm text-muted">
+                    {service.duration} min - {money(service.price)}
+                  </p>
+                </div>
+                <button className="rounded-card bg-brand px-3 py-2 text-sm font-black text-white" onClick={() => store.toggleService(service.id)}>
+                  {service.active ? "Pausar" : "Ativar"}
+                </button>
               </div>
-              <button className="rounded-card bg-brand px-3 py-2 text-sm font-black text-white" onClick={() => store.toggleService(service.id)}>
-                {service.active ? "Pausar" : "Ativar"}
-              </button>
-            </div>
-          ))}
+            ))
+          ) : (
+            <EmptyState>Nenhum servico cadastrado.</EmptyState>
+          )}
         </div>
       </Panel>
     </div>
@@ -336,17 +355,21 @@ function Staff({ store }: { store: ReturnType<typeof useAgendaStore> }) {
       <Panel>
         <h3 className="mb-4 text-lg font-black">Equipe</h3>
         <div className="grid gap-3">
-          {store.staff.map((person) => (
-            <div key={person.id} className="flex items-center justify-between gap-3 rounded-card border border-line p-3">
-              <div>
-                <strong>{person.name}</strong>
-                <p className="text-sm text-muted">{person.role}</p>
+          {store.staff.length ? (
+            store.staff.map((person) => (
+              <div key={person.id} className="flex items-center justify-between gap-3 rounded-card border border-line p-3">
+                <div>
+                  <strong>{person.name}</strong>
+                  <p className="text-sm text-muted">{person.role}</p>
+                </div>
+                <button className="rounded-card bg-brand px-3 py-2 text-sm font-black text-white" onClick={() => store.toggleStaff(person.id)}>
+                  {person.active ? "Pausar" : "Ativar"}
+                </button>
               </div>
-              <button className="rounded-card bg-brand px-3 py-2 text-sm font-black text-white" onClick={() => store.toggleStaff(person.id)}>
-                {person.active ? "Pausar" : "Ativar"}
-              </button>
-            </div>
-          ))}
+            ))
+          ) : (
+            <EmptyState>Nenhum profissional cadastrado.</EmptyState>
+          )}
         </div>
       </Panel>
     </div>

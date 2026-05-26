@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, CreditCard, LockKeyhole, Store, UserRound, type LucideIcon } from "lucide-react";
 import { agendaPlans, useAgendaStore } from "@/lib/agenda-store";
+import { saveStoreAccount } from "@/lib/auth-store";
 import { money } from "@/lib/format";
 import type { PaymentProvider, PlanCycle } from "@/types/agenda";
 
@@ -64,13 +65,19 @@ export function SignupWizard() {
     setData((current) => ({ ...current, ...input }));
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (step < 3) {
       setStep((current) => current + 1);
       return;
     }
     store.onboardBusiness(data);
+    await saveStoreAccount({
+      email: data.ownerEmail,
+      password: data.password,
+      ownerName: data.ownerName,
+      businessSlug: data.name,
+    });
     setCreated(true);
     window.setTimeout(() => router.push("/painel"), 900);
   }
@@ -124,8 +131,9 @@ export function SignupWizard() {
                 </label>
                 <label>
                   Senha
-                  <input type="password" minLength={6} value={data.password} onChange={(event) => update({ password: event.target.value })} required />
+                  <input type="password" minLength={8} value={data.password} onChange={(event) => update({ password: event.target.value })} required />
                 </label>
+                <p className="text-sm font-bold text-muted">Use no minimo 8 caracteres. Na versao com Supabase, a senha fica no Auth do provedor.</p>
               </section>
             )}
 

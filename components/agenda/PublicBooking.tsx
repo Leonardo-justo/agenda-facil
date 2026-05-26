@@ -43,6 +43,23 @@ export function PublicBooking({ slug }: { slug: string }) {
     );
   }
 
+  if (!store.activeServices.length || !store.activeStaff.length) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-canvas p-6">
+        <Panel>
+          <p className="text-xs font-black uppercase text-brand">Agendamento online</p>
+          <h1 className="mt-2 text-3xl font-black">{store.business.name}</h1>
+          <p className="mt-3 font-semibold text-muted">
+            Esta agenda ainda esta em configuracao. A loja precisa cadastrar servicos e profissionais para liberar horarios.
+          </p>
+          <Link className="mt-5 inline-flex rounded-card bg-brand px-4 py-3 font-black text-white" href="/painel">
+            Abrir painel da loja
+          </Link>
+        </Panel>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-canvas p-6">
       <header className="mx-auto mb-5 grid max-w-6xl grid-cols-[180px_minmax(0,1fr)] gap-5 max-md:grid-cols-1">
