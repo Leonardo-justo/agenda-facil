@@ -21,7 +21,7 @@
         <form id="login-form" class="stack">
           <label>
             E-mail
-            <input id="login-email" type="email" value="admin@agenda.local" required />
+            <input id="login-email" type="email" value="dono@agenda.local" required />
           </label>
           <label>
             Senha
@@ -30,6 +30,89 @@
           <button type="submit">Entrar</button>
           <p id="login-error" class="form-error" role="alert"></p>
         </form>
+      </section>
+    </main>
+
+    <main id="platform-view" class="platform-shell is-hidden">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Agenda Facil</p>
+          <h2>Painel do dono</h2>
+        </div>
+        <nav class="nav-list" aria-label="Gestao da plataforma">
+          <button class="nav-button is-active" type="button">Visao geral</button>
+          <button id="open-client-panel" class="nav-button" type="button">Painel do cliente</button>
+        </nav>
+        <button id="platform-logout-button" class="ghost-button" type="button">Sair</button>
+      </aside>
+
+      <section class="content-shell">
+        <header class="topbar">
+          <div>
+            <p class="muted">Operacao comercial</p>
+            <h1>Visao da plataforma</h1>
+          </div>
+          <a id="platform-public-link" class="button-link" href="#" target="_blank" rel="noreferrer">Ver link publico</a>
+        </header>
+
+        <section class="platform-hero">
+          <div>
+            <p class="eyebrow">Meta da semana</p>
+            <h2>Validar com 5 negocios locais e fechar os 2 primeiros clientes pagos.</h2>
+          </div>
+          <div class="platform-actions">
+            <a id="platform-whatsapp-pitch" class="button-link" href="#" target="_blank" rel="noreferrer">Enviar proposta</a>
+          </div>
+        </section>
+
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span>Clientes ativos</span>
+            <strong id="owner-active-clients">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Agendamentos no mes</span>
+            <strong id="owner-month-appointments">0</strong>
+          </article>
+          <article class="metric-card accent-green">
+            <span>Receita mensal estimada</span>
+            <strong id="owner-mrr">R$ 0,00</strong>
+          </article>
+          <article class="metric-card accent-rust">
+            <span>Ticket sugerido</span>
+            <strong id="owner-ticket">R$ 79</strong>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <div class="section-heading">
+              <h2>Clientes da plataforma</h2>
+            </div>
+            <div id="owner-client-list" class="mini-list"></div>
+          </section>
+          <section class="panel">
+            <div class="section-heading">
+              <h2>Proximas acoes</h2>
+            </div>
+            <div class="mini-list">
+              <article class="mini-item">
+                <div>
+                  <strong>Enviar link demo</strong>
+                  <div class="muted">Mostrar agendamento pelo celular em menos de 2 minutos.</div>
+                </div>
+                <span class="status-pill">hoje</span>
+              </article>
+              <article class="mini-item">
+                <div>
+                  <strong>Oferecer setup guiado</strong>
+                  <div class="muted">Cadastrar servicos e equipe junto com o cliente.</div>
+                </div>
+                <span class="status-pill">venda</span>
+              </article>
+            </div>
+          </section>
+        </div>
       </section>
     </main>
 

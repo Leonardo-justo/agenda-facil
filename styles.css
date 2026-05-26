@@ -42,6 +42,19 @@ button {
   cursor: pointer;
 }
 
+.button-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #ffffff;
+  background: var(--green);
+  font-weight: 900;
+  text-decoration: none;
+}
+
 button:hover {
   filter: brightness(0.96);
 }
@@ -163,7 +176,8 @@ a {
   font-weight: 800;
 }
 
-.app-shell {
+.app-shell,
+.platform-shell {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   min-height: 100vh;
@@ -267,6 +281,29 @@ a {
 .accent-rust {
   border-color: #efcfaa;
   background: #fff5e8;
+}
+
+.platform-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #b7d8ce;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  padding: 20px;
+  background: #e8f3ef;
+}
+
+.platform-hero h2 {
+  max-width: 780px;
+  margin-top: 6px;
+  font-size: clamp(1.5rem, 4vw, 2.6rem);
+  line-height: 1.04;
+}
+
+.platform-actions {
+  flex: 0 0 auto;
 }
 
 .dashboard-grid,
@@ -436,7 +473,8 @@ a {
 }
 
 @media (max-width: 980px) {
-  .app-shell {
+  .app-shell,
+  .platform-shell {
     grid-template-columns: 1fr;
   }
 
@@ -456,8 +494,14 @@ a {
   .settings-grid,
   .split-layout,
   .public-grid,
+  .platform-hero,
   .public-header {
     grid-template-columns: 1fr;
+  }
+
+  .platform-hero {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

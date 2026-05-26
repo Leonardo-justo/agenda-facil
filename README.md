@@ -29,9 +29,14 @@ http://127.0.0.1:4180
 Login de demonstracao:
 
 ```text
+dono@agenda.local
+admin123
+
 admin@agenda.local
 admin123
 ```
+
+Use `dono@agenda.local` para acessar o painel do dono da plataforma. Use `admin@agenda.local` para acessar o painel do cliente.
 
 ## Proximas evolucoes
 

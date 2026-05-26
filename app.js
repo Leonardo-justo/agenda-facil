@@ -4,10 +4,10 @@ const SERVICES_KEY = "agenda-facil-services";
 const STAFF_KEY = "agenda-facil-staff";
 const APPOINTMENTS_KEY = "agenda-facil-appointments";
 
-const credentials = {
-  email: "admin@agenda.local",
-  password: "admin123",
-};
+const credentials = [
+  { email: "dono@agenda.local", password: "admin123", role: "owner" },
+  { email: "admin@agenda.local", password: "admin123", role: "client" },
+];
 
 const seedBusiness = {
   name: "Studio Aurora",
@@ -61,11 +61,13 @@ const state = {
   services: loadValue(SERVICES_KEY, seedServices),
   staff: loadValue(STAFF_KEY, seedStaff),
   appointments: loadValue(APPOINTMENTS_KEY, seedAppointments),
+  role: localStorage.getItem(SESSION_KEY) || "",
   section: "dashboard",
 };
 
 const views = {
   login: document.querySelector("#login-view"),
+  platform: document.querySelector("#platform-view"),
   admin: document.querySelector("#admin-view"),
   public: document.querySelector("#public-view"),
 };
@@ -79,21 +81,34 @@ document.querySelector("#login-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const email = document.querySelector("#login-email").value.trim();
   const password = document.querySelector("#login-password").value;
+  const account = credentials.find((item) => item.email === email && item.password === password);
 
-  if (email !== credentials.email || password !== credentials.password) {
+  if (!account) {
     document.querySelector("#login-error").textContent = "E-mail ou senha invalidos.";
     return;
   }
 
-  localStorage.setItem(SESSION_KEY, "active");
+  state.role = account.role;
+  localStorage.setItem(SESSION_KEY, account.role);
   document.querySelector("#login-error").textContent = "";
-  showAdmin();
+  if (account.role === "owner") {
+    showPlatform();
+  } else {
+    showAdmin();
+  }
 });
 
 document.querySelector("#logout-button").addEventListener("click", () => {
   localStorage.removeItem(SESSION_KEY);
+  state.role = "";
   showLogin();
 });
+document.querySelector("#platform-logout-button").addEventListener("click", () => {
+  localStorage.removeItem(SESSION_KEY);
+  state.role = "";
+  showLogin();
+});
+document.querySelector("#open-client-panel").addEventListener("click", showAdmin);
 
 document.querySelectorAll(".nav-button").forEach((button) => {
   button.addEventListener("click", () => setSection(button.dataset.section));
@@ -226,7 +241,9 @@ document.addEventListener("change", (event) => {
 
 if (location.hash.startsWith("#book")) {
   showPublic();
-} else if (localStorage.getItem(SESSION_KEY) === "active") {
+} else if (localStorage.getItem(SESSION_KEY) === "owner") {
+  showPlatform();
+} else if (localStorage.getItem(SESSION_KEY) === "client") {
   showAdmin();
 } else {
   showLogin();
@@ -234,13 +251,24 @@ if (location.hash.startsWith("#book")) {
 
 function showLogin() {
   views.login.classList.remove("is-hidden");
+  views.platform.classList.add("is-hidden");
   views.admin.classList.add("is-hidden");
   views.public.classList.add("is-hidden");
+}
+
+function showPlatform() {
+  history.replaceState(null, "", location.pathname);
+  views.login.classList.add("is-hidden");
+  views.platform.classList.remove("is-hidden");
+  views.admin.classList.add("is-hidden");
+  views.public.classList.add("is-hidden");
+  renderOwnerDashboard();
 }
 
 function showAdmin() {
   history.replaceState(null, "", location.pathname);
   views.login.classList.add("is-hidden");
+  views.platform.classList.add("is-hidden");
   views.admin.classList.remove("is-hidden");
   views.public.classList.add("is-hidden");
   render();
@@ -248,6 +276,7 @@ function showAdmin() {
 
 function showPublic() {
   views.login.classList.add("is-hidden");
+  views.platform.classList.add("is-hidden");
   views.admin.classList.add("is-hidden");
   views.public.classList.remove("is-hidden");
   renderPublic();
@@ -285,6 +314,27 @@ function render() {
   renderStaff();
   renderSettings();
   setSection(state.section);
+}
+
+function renderOwnerDashboard() {
+  const month = new Date().toISOString().slice(0, 7);
+  const monthAppointments = state.appointments.filter((appointment) => appointment.date.startsWith(month));
+  const activeClients = 1;
+  const ticket = 79;
+  const mrr = activeClients * ticket;
+  const publicLink = publicUrl();
+  const pitch = `Ola, preparei uma agenda online para ${state.business.name}. O cliente agenda pelo link, e voce acompanha tudo no painel: ${publicLink}`;
+
+  document.querySelector("#owner-active-clients").textContent = activeClients;
+  document.querySelector("#owner-month-appointments").textContent = monthAppointments.length;
+  document.querySelector("#owner-mrr").textContent = money(mrr);
+  document.querySelector("#platform-public-link").href = publicLink;
+  document.querySelector("#platform-whatsapp-pitch").href = whatsappLink(state.business.phone, pitch);
+  document.querySelector("#owner-client-list").innerHTML = miniItem(
+    state.business.name,
+    `${state.business.address} - ${state.appointments.length} agendamentos no total`,
+    "ativo",
+  );
 }
 
 function renderSelects() {
