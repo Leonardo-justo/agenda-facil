@@ -12,9 +12,13 @@ SaaS de agenda online para negocios de servicos como salao, barbearia, manicure,
 
 ## Funcionalidades
 
+- Site comercial publico para venda do produto.
+- Wizard de cadastro da empresa com usuario, senha, dados da loja, logo e aceite LGPD.
+- Planos gratuito, 1 mes, 3 meses e 12 meses.
+- Preparacao para checkout com Mercado Pago, InfinitePay ou Stripe.
 - Login demonstrativo por perfil.
-- Painel do dono da plataforma.
-- Painel do cliente com dados do negocio.
+- Central interna da plataforma.
+- Painel da loja com dados do negocio.
 - Cadastro de negocio.
 - Cadastro de servicos com preco e duracao.
 - Cadastro de profissionais.
@@ -48,13 +52,16 @@ admin@agenda.local
 admin123
 ```
 
-Use `dono@agenda.local` para acessar o painel do dono da plataforma. Use `admin@agenda.local` para acessar o painel do cliente.
+Use `dono@agenda.local` para acessar a central interna da plataforma. Use `admin@agenda.local` para acessar o painel da loja.
 
 ## Rotas
 
-- `/` login.
-- `/admin` painel do dono da plataforma.
-- `/painel` painel do cliente.
+- `/` site comercial.
+- `/cadastro` wizard de cadastro da loja.
+- `/login` login.
+- `/interno` central interna da plataforma.
+- `/admin` atalho legado da central interna.
+- `/painel` painel da loja.
 - `/agenda/studio-aurora` agendamento publico.
 
 ## Proximas evolucoes

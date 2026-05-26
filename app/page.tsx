@@ -1,5 +1,5 @@
-import { LoginPage } from "@/components/agenda/LoginPage";
+import { MarketingSite } from "@/components/agenda/MarketingSite";
 
 export default function Home() {
-  return <LoginPage />;
+  return <MarketingSite />;
 }

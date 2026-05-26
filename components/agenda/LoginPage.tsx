@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 const accounts = [
-  { email: "dono@agenda.local", password: "admin123", path: "/admin" },
+  { email: "dono@agenda.local", password: "admin123", path: "/interno" },
   { email: "admin@agenda.local", password: "admin123", path: "/painel" },
 ];
 
@@ -30,10 +30,10 @@ export function LoginPage() {
         <div>
           <p className="text-xs font-black uppercase text-brand">Agenda Facil</p>
           <h1 className="mt-2 max-w-[12ch] text-6xl font-black leading-[0.95] max-md:text-4xl">
-            Agenda online para negocios de servicos
+            Acesse sua area
           </h1>
           <p className="mt-4 max-w-xl text-lg text-muted">
-            Plataforma com painel do dono, painel do cliente e link publico para agendamentos.
+            Entre no painel interno da plataforma ou no painel da loja.
           </p>
         </div>
         <form onSubmit={submit} className="grid content-center gap-4">
@@ -48,7 +48,7 @@ export function LoginPage() {
           <button className="min-h-11 rounded-card bg-brand px-4 font-black text-white">Entrar</button>
           <p className="min-h-6 text-sm font-bold text-red-700">{error}</p>
           <div className="rounded-card border border-line bg-canvas p-3 text-sm text-muted">
-            <strong className="text-ink">Demos:</strong> dono@agenda.local ou admin@agenda.local, senha admin123.
+            <strong className="text-ink">Demos:</strong> dono@agenda.local para area interna ou admin@agenda.local para loja.
           </div>
         </form>
       </section>
