@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <title>Agenda Facil</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="login-view" class="login-shell">
+      <section class="login-card">
+        <div>
+          <p class="eyebrow">Agenda Facil</p>
+          <h1>Agenda online para negocios de servicos</h1>
+          <p class="muted">
+            Organize horarios, equipe, servicos e receba agendamentos pelo link publico.
+          </p>
+        </div>
+        <form id="login-form" class="stack">
+          <label>
+            E-mail
+            <input id="login-email" type="email" value="admin@agenda.local" required />
+          </label>
+          <label>
+            Senha
+            <input id="login-password" type="password" value="admin123" required />
+          </label>
+          <button type="submit">Entrar</button>
+          <p id="login-error" class="form-error" role="alert"></p>
+        </form>
+      </section>
+    </main>
+
+    <main id="admin-view" class="app-shell is-hidden">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Agenda Facil</p>
+          <h2 id="business-title">Studio Aurora</h2>
+        </div>
+        <nav class="nav-list" aria-label="Painel">
+          <button class="nav-button is-active" data-section="dashboard">Dashboard</button>
+          <button class="nav-button" data-section="appointments">Agenda</button>
+          <button class="nav-button" data-section="services">Servicos</button>
+          <button class="nav-button" data-section="team">Equipe</button>
+          <button class="nav-button" data-section="settings">Link publico</button>
+        </nav>
+        <button id="logout-button" class="ghost-button" type="button">Sair</button>
+      </aside>
+
+      <section class="content-shell">
+        <header class="topbar">
+          <div>
+            <p class="muted">Painel administrativo</p>
+            <h1 id="section-title">Dashboard</h1>
+          </div>
+          <button id="open-public-button" type="button">Abrir agendamento</button>
+        </header>
+
+        <section id="dashboard-section" class="view-section">
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>Hoje</span>
+              <strong id="metric-today">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Semana</span>
+              <strong id="metric-week">0</strong>
+            </article>
+            <article class="metric-card accent-green">
+              <span>Receita prevista</span>
+              <strong id="metric-revenue">R$ 0,00</strong>
+            </article>
+            <article class="metric-card accent-rust">
+              <span>Servicos ativos</span>
+              <strong id="metric-services">0</strong>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Proximos horarios</h2>
+              </div>
+              <div id="next-appointments" class="mini-list"></div>
+            </section>
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Resumo por profissional</h2>
+              </div>
+              <div id="staff-summary" class="mini-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="appointments-section" class="view-section is-hidden">
+          <div class="split-layout">
+            <form id="appointment-form" class="panel form-panel">
+              <div class="section-heading">
+                <h2>Novo agendamento</h2>
+              </div>
+              <label>
+                Cliente
+                <input id="appointment-client" required />
+              </label>
+              <label>
+                WhatsApp
+                <input id="appointment-phone" inputmode="tel" placeholder="5511999999999" required />
+              </label>
+              <label>
+                Servico
+                <select id="appointment-service" required></select>
+              </label>
+              <label>
+                Profissional
+                <select id="appointment-staff" required></select>
+              </label>
+              <div class="form-row">
+                <label>
+                  Data
+                  <input id="appointment-date" type="date" required />
+                </label>
+                <label>
+                  Horario
+                  <select id="appointment-time" required></select>
+                </label>
+              </div>
+              <button type="submit">Salvar horario</button>
+            </form>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <h2>Agenda</h2>
+                <input id="agenda-filter-date" type="date" />
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Cliente</th>
+                      <th>Servico</th>
+                      <th>Profissional</th>
+                      <th>Status</th>
+                      <th>Contato</th>
+                    </tr>
+                  </thead>
+                  <tbody id="appointments-table"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="services-section" class="view-section is-hidden">
+          <div class="split-layout">
+            <form id="service-form" class="panel form-panel">
+              <div class="section-heading">
+                <h2>Novo servico</h2>
+              </div>
+              <label>
+                Nome
+                <input id="service-name" required />
+              </label>
+              <div class="form-row">
+                <label>
+                  Duracao
+                  <input id="service-duration" type="number" min="15" step="15" value="45" required />
+                </label>
+                <label>
+                  Preco
+                  <input id="service-price" type="number" min="0" step="0.01" value="0.00" required />
+                </label>
+              </div>
+              <button type="submit">Salvar servico</button>
+            </form>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Servicos cadastrados</h2>
+              </div>
+              <div id="services-list" class="mini-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="team-section" class="view-section is-hidden">
+          <div class="split-layout">
+            <form id="staff-form" class="panel form-panel">
+              <div class="section-heading">
+                <h2>Novo profissional</h2>
+              </div>
+              <label>
+                Nome
+                <input id="staff-name" required />
+              </label>
+              <label>
+                Especialidade
+                <input id="staff-role" required />
+              </label>
+              <button type="submit">Salvar profissional</button>
+            </form>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>Equipe</h2>
+              </div>
+              <div id="staff-list" class="mini-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="settings-section" class="view-section is-hidden">
+          <div class="settings-grid">
+            <form id="business-form" class="panel form-panel">
+              <div class="section-heading">
+                <h2>Dados do negocio</h2>
+              </div>
+              <label>
+                Nome
+                <input id="business-name" required />
+              </label>
+              <label>
+                Slug do link
+                <input id="business-slug" required />
+              </label>
+              <label>
+                WhatsApp do negocio
+                <input id="business-phone" inputmode="tel" required />
+              </label>
+              <label>
+                Endereco
+                <input id="business-address" required />
+              </label>
+              <div class="form-row">
+                <label>
+                  Abre
+                  <input id="business-open" type="time" required />
+                </label>
+                <label>
+                  Fecha
+                  <input id="business-close" type="time" required />
+                </label>
+              </div>
+              <button type="submit">Salvar dados</button>
+            </form>
+
+            <section class="panel share-panel">
+              <div class="section-heading">
+                <h2>Link para clientes</h2>
+              </div>
+              <p class="muted">
+                Envie este link para o cliente escolher servico, profissional, data e horario.
+              </p>
+              <div id="public-link-box" class="link-box"></div>
+              <button id="copy-public-link" type="button">Copiar link</button>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <main id="public-view" class="public-shell is-hidden">
+      <section class="public-header">
+        <button id="back-to-admin" class="ghost-button" type="button">Voltar ao painel</button>
+        <div>
+          <p class="eyebrow">Agendamento online</p>
+          <h1 id="public-business-name">Studio Aurora</h1>
+          <p id="public-business-address" class="muted"></p>
+        </div>
+      </section>
+
+      <section class="public-grid">
+        <form id="public-booking-form" class="panel form-panel">
+          <div class="section-heading">
+            <h2>Escolha seu horario</h2>
+          </div>
+          <label>
+            Servico
+            <select id="public-service" required></select>
+          </label>
+          <label>
+            Profissional
+            <select id="public-staff" required></select>
+          </label>
+          <div class="form-row">
+            <label>
+              Data
+              <input id="public-date" type="date" required />
+            </label>
+            <label>
+              Horario
+              <select id="public-time" required></select>
+            </label>
+          </div>
+          <label>
+            Seu nome
+            <input id="public-client" required />
+          </label>
+          <label>
+            WhatsApp
+            <input id="public-phone" inputmode="tel" placeholder="5511999999999" required />
+          </label>
+          <button type="submit">Confirmar agendamento</button>
+          <p id="public-success" class="success-message"></p>
+        </form>
+
+        <section class="panel public-info">
+          <h2>Como funciona</h2>
+          <ol>
+            <li>Escolha o servico e o profissional.</li>
+            <li>Selecione uma data com horario disponivel.</li>
+            <li>Confirme seus dados de contato.</li>
+            <li>O estabelecimento recebe seu agendamento no painel.</li>
+          </ol>
+          <div class="contact-card">
+            <strong>Contato do estabelecimento</strong>
+            <a id="public-whatsapp-link" href="#" target="_blank" rel="noreferrer">Chamar no WhatsApp</a>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
