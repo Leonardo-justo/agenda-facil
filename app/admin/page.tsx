@@ -1,5 +1,10 @@
 import { OwnerDashboard } from "@/components/agenda/OwnerDashboard";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 
 export default function AdminPage() {
-  return <OwnerDashboard />;
+  return (
+    <RouteGuard role="platform">
+      <OwnerDashboard />
+    </RouteGuard>
+  );
 }

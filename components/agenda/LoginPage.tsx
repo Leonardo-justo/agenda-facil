@@ -2,19 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { signInWithGoogle, validateLogin } from "@/lib/auth-store";
+import { requestPasswordReset, signInWithGoogle, validateLogin } from "@/lib/auth-store";
 
 export function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
     const result = await validateLogin(email, password);
     setLoading(false);
     if (!result.ok) {
@@ -26,8 +28,20 @@ export function LoginPage() {
 
   async function googleLogin() {
     setError("");
+    setNotice("");
     const result = await signInWithGoogle();
     if (!result.ok) setError(result.error ?? "Nao foi possivel entrar com Google.");
+  }
+
+  async function recoverPassword() {
+    setError("");
+    setNotice("");
+    const result = await requestPasswordReset(email);
+    if (!result.ok) {
+      setError(result.error ?? "Nao foi possivel iniciar a recuperacao.");
+      return;
+    }
+    setNotice(result.message ?? "Verifique seu e-mail.");
   }
 
   return (
@@ -55,7 +69,11 @@ export function LoginPage() {
           <button type="button" onClick={googleLogin} className="min-h-11 rounded-card border border-line bg-white px-4 font-black text-ink">
             Entrar com Google
           </button>
+          <button type="button" onClick={recoverPassword} className="text-left text-sm font-black text-brand">
+            Esqueci minha senha
+          </button>
           <p className="min-h-6 text-sm font-bold text-red-700">{error}</p>
+          <p className="min-h-6 text-sm font-bold text-brand">{notice}</p>
           <div className="rounded-card border border-line bg-canvas p-3 text-sm text-muted">
             <strong className="text-ink">Area interna:</strong> dono@agenda.local com senha admin123. Lojas novas entram com o e-mail e senha cadastrados.
           </div>

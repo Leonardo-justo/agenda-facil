@@ -19,6 +19,9 @@ SaaS de agenda online para negocios de servicos como salao, barbearia, manicure,
 - Preparacao para login com Google via Supabase Auth.
 - Planos gratuito, 1 mes, 3 meses e 12 meses.
 - Preparacao para checkout com Mercado Pago, InfinitePay ou Stripe.
+- Checkout inicial com Mercado Pago por API route.
+- Webhook base para eventos de pagamento.
+- Protecao client-side de rotas do painel.
 - Login demonstrativo por perfil.
 - Central interna da plataforma.
 - Painel da loja com dados do negocio.
@@ -38,6 +41,8 @@ SaaS de agenda online para negocios de servicos como salao, barbearia, manicure,
 npm install
 npm run dev
 ```
+
+Para configurar ambiente real, copie `.env.example` para `.env.local` e preencha as chaves. Veja `DEPLOY.md`.
 
 Acesse:
 

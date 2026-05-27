@@ -6,6 +6,11 @@ const AUTH_KEY = "agenda-facil-auth-accounts";
 const SESSION_KEY = "agenda-facil-auth-session";
 
 type AuthRole = "platform" | "store";
+type AuthSession = {
+  email: string;
+  role: AuthRole;
+  signedInAt: string;
+};
 
 type AuthAccount = {
   email: string;
@@ -80,6 +85,27 @@ export function clearSession() {
   window.localStorage.removeItem(SESSION_KEY);
 }
 
+export function getLocalSession(): AuthSession | null {
+  if (typeof window === "undefined") return null;
+  const stored = window.localStorage.getItem(SESSION_KEY);
+  return stored ? (JSON.parse(stored) as AuthSession) : null;
+}
+
+export async function getCurrentSession(): Promise<AuthSession | null> {
+  if (hasSupabaseConfig && supabase) {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (user?.email) {
+      const role: AuthRole = user.user_metadata?.role === "platform_admin" ? "platform" : "store";
+      const session = { email: user.email, role, signedInAt: new Date().toISOString() };
+      setSession(session);
+      return session;
+    }
+  }
+
+  return getLocalSession();
+}
+
 export async function validateLogin(emailInput: string, password: string) {
   const email = emailInput.trim().toLowerCase();
 
@@ -120,6 +146,23 @@ export async function signInWithGoogle() {
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function requestPasswordReset(emailInput: string) {
+  const email = emailInput.trim().toLowerCase();
+  if (!email) return { ok: false, error: "Informe o e-mail para recuperar a senha." };
+
+  if (hasSupabaseConfig && supabase) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, message: "Enviamos um link de recuperacao para o e-mail informado." };
+  }
+
+  const account = readAccounts().find((item) => item.email === email);
+  if (!account && email !== platformAccount.email) return { ok: false, error: "Conta nao encontrada." };
+  return { ok: true, message: "Recuperacao preparada. Em producao, o Supabase enviara o e-mail automaticamente." };
 }
 
 export async function signOut() {

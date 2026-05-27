@@ -1,23 +1,39 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Panel, PrimaryButton } from "@/components/ui/AppShell";
 import { todayInput, whatsappLink } from "@/lib/format";
 import { useAgendaStore } from "@/lib/agenda-store";
+import { createPublicAppointment, loadPublicBusinessData } from "@/lib/agenda-repository";
+import type { AgendaData, Appointment } from "@/types/agenda";
 
 export function PublicBooking({ slug }: { slug: string }) {
   const store = useAgendaStore();
+  const [remoteData, setRemoteData] = useState<AgendaData | null>(null);
   const [date, setDate] = useState(todayInput());
-  const [serviceId, setServiceId] = useState(store.activeServices[0]?.id ?? "");
-  const [staffId, setStaffId] = useState(store.activeStaff[0]?.id ?? "");
+  const data = remoteData ?? store;
+  const activeServices = remoteData ? remoteData.services.filter((service) => service.active) : store.activeServices;
+  const activeStaff = remoteData ? remoteData.staff.filter((person) => person.active) : store.activeStaff;
+  const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
+  const [staffId, setStaffId] = useState(activeStaff[0]?.id ?? "");
   const [success, setSuccess] = useState("");
-  const slots = useMemo(() => store.availableSlots(date, staffId), [date, staffId, store]);
+  const slots = useMemo(() => (remoteData ? buildSimpleSlots(remoteData.business.open, remoteData.business.close) : store.availableSlots(date, staffId)), [date, remoteData, staffId, store]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    loadPublicBusinessData(slug).then((result) => {
+      if (result) {
+        setRemoteData(result);
+        setServiceId(result.services[0]?.id ?? "");
+        setStaffId(result.staff[0]?.id ?? "");
+      }
+    });
+  }, [slug]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    store.addAppointment({
+    const appointment: Appointment = {
       client: String(form.get("client")),
       phone: String(form.get("phone")),
       serviceId,
@@ -25,12 +41,18 @@ export function PublicBooking({ slug }: { slug: string }) {
       date,
       time: String(form.get("time")),
       source: "public",
-    });
+      id: `apt-${crypto.randomUUID()}`,
+      businessId: data.business.id,
+      status: "scheduled" as const,
+      createdAt: new Date().toISOString(),
+    };
+    const savedRemote = await createPublicAppointment(appointment);
+    if (!savedRemote) store.addAppointment(appointment);
     setSuccess("Agendamento recebido. Aguarde a confirmacao do estabelecimento.");
     event.currentTarget.reset();
   }
 
-  if (slug !== store.business.slug) {
+  if (!remoteData && slug !== store.business.slug) {
     return (
       <main className="grid min-h-screen place-items-center bg-canvas p-6">
         <Panel>
@@ -43,12 +65,12 @@ export function PublicBooking({ slug }: { slug: string }) {
     );
   }
 
-  if (!store.activeServices.length || !store.activeStaff.length) {
+  if (!activeServices.length || !activeStaff.length) {
     return (
       <main className="grid min-h-screen place-items-center bg-canvas p-6">
         <Panel>
           <p className="text-xs font-black uppercase text-brand">Agendamento online</p>
-          <h1 className="mt-2 text-3xl font-black">{store.business.name}</h1>
+          <h1 className="mt-2 text-3xl font-black">{data.business.name}</h1>
           <p className="mt-3 font-semibold text-muted">
             Esta agenda ainda esta em configuracao. A loja precisa cadastrar servicos e profissionais para liberar horarios.
           </p>
@@ -68,8 +90,8 @@ export function PublicBooking({ slug }: { slug: string }) {
         </Link>
         <div>
           <p className="text-xs font-black uppercase text-brand">Agendamento online</p>
-          <h1 className="mt-1 text-6xl font-black leading-none max-md:text-4xl">{store.business.name}</h1>
-          <p className="mt-2 text-muted">{store.business.address}</p>
+          <h1 className="mt-1 text-6xl font-black leading-none max-md:text-4xl">{data.business.name}</h1>
+          <p className="mt-2 text-muted">{data.business.address}</p>
         </div>
       </header>
       <section className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_380px] gap-4 max-lg:grid-cols-1">
@@ -79,7 +101,7 @@ export function PublicBooking({ slug }: { slug: string }) {
             <label>
               Servico
               <select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-                {store.activeServices.map((service) => (
+                {activeServices.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name}
                   </option>
@@ -89,7 +111,7 @@ export function PublicBooking({ slug }: { slug: string }) {
             <label>
               Profissional
               <select value={staffId} onChange={(event) => setStaffId(event.target.value)}>
-                {store.activeStaff.map((person) => (
+                {activeStaff.map((person) => (
                   <option key={person.id} value={person.id}>
                     {person.name}
                   </option>
@@ -132,7 +154,7 @@ export function PublicBooking({ slug }: { slug: string }) {
           </ol>
           <a
             className="mt-5 inline-flex min-h-11 items-center rounded-card bg-brand px-4 font-black text-white"
-            href={whatsappLink(store.business.phone, `Ola, gostaria de falar com ${store.business.name}.`)}
+            href={whatsappLink(data.business.phone, `Ola, gostaria de falar com ${data.business.name}.`)}
             target="_blank"
             rel="noreferrer"
           >
@@ -142,4 +164,17 @@ export function PublicBooking({ slug }: { slug: string }) {
       </section>
     </main>
   );
+}
+
+function buildSimpleSlots(open: string, close: string) {
+  const result: string[] = [];
+  const [openHour, openMinute] = open.split(":").map(Number);
+  const [closeHour, closeMinute] = close.split(":").map(Number);
+  let current = openHour * 60 + openMinute;
+  const end = closeHour * 60 + closeMinute;
+  while (current < end) {
+    result.push(`${String(Math.floor(current / 60)).padStart(2, "0")}:${String(current % 60).padStart(2, "0")}`);
+    current += 30;
+  }
+  return result;
 }

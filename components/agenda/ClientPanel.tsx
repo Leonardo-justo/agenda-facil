@@ -468,6 +468,32 @@ function Settings({ store }: { store: ReturnType<typeof useAgendaStore> }) {
 
 function Billing({ store }: { store: ReturnType<typeof useAgendaStore> }) {
   const [provider, setProvider] = useState<PaymentProvider>(store.business.paymentProvider);
+  const [checkoutMessage, setCheckoutMessage] = useState("");
+
+  async function startCheckout(planId: PlanCycle) {
+    if (planId === "free") {
+      store.updatePlan(planId, provider);
+      setCheckoutMessage("Plano gratuito ativado.");
+      return;
+    }
+
+    const response = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        planId,
+        businessId: store.business.id,
+        email: store.business.ownerEmail,
+      }),
+    });
+    const data = await response.json();
+    if (data.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+      return;
+    }
+    store.updatePlan(planId, provider);
+    setCheckoutMessage(data.message ?? "Checkout preparado. Plano atualizado no ambiente de demonstracao.");
+  }
 
   return (
     <div className="grid gap-4">
@@ -490,14 +516,15 @@ function Billing({ store }: { store: ReturnType<typeof useAgendaStore> }) {
             <p className="mt-2 min-h-20 text-sm font-semibold text-muted">{plan.description}</p>
             <button
               type="button"
-              onClick={() => store.updatePlan(plan.id as PlanCycle, provider)}
+              onClick={() => void startCheckout(plan.id as PlanCycle)}
               className="mt-4 min-h-11 w-full rounded-card bg-brand px-4 font-black text-white"
             >
-              Selecionar
+              {plan.id === "free" ? "Ativar" : "Contratar"}
             </button>
           </article>
         ))}
       </div>
+      {checkoutMessage && <div className="rounded-card border border-brand/30 bg-brand/10 p-4 font-bold text-brand">{checkoutMessage}</div>}
       <Panel>
         <h3 className="mb-4 text-lg font-black">Provedor de pagamento</h3>
         <select value={provider} onChange={(event) => setProvider(event.target.value as PaymentProvider)}>

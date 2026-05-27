@@ -17,6 +17,7 @@ Crie `.env.local` na raiz do projeto:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon
+MERCADO_PAGO_ACCESS_TOKEN=seu-token-mercado-pago
 ```
 
 ## 3. Banco de dados
@@ -51,3 +52,12 @@ Depois de configurar o Supabase real, trocar o `localStorage` por chamadas no ba
 - painel carrega loja pelo usuario logado
 - agenda publica carrega loja por `slug`
 - agendamento publico insere em `appointments`
+
+## 6. Pagamento
+
+O checkout inicial usa Mercado Pago por meio de `/api/checkout`.
+
+Sem `MERCADO_PAGO_ACCESS_TOKEN`, o app mostra mensagem de ambiente demonstrativo.
+Com o token, o endpoint cria uma preferencia de pagamento e retorna a URL de checkout.
+
+O webhook base esta em `/api/webhooks/mercado-pago` e deve ser completado com validacao do pagamento antes da operacao comercial.

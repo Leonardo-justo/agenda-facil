@@ -13,6 +13,7 @@ import type {
   StaffMember,
 } from "@/types/agenda";
 import { addDaysInput, onlyDigits, slugify, todayInput } from "@/lib/format";
+import { ensureCurrentUserBusinessMembership, loadCurrentBusinessData, saveBusinessData, saveConsentEvent } from "@/lib/agenda-repository";
 
 const STORAGE_KEY = "agenda-facil-next-data";
 const businessId = "studio-aurora";
@@ -201,12 +202,27 @@ export function useAgendaStore() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setData(loadData());
-    setReady(true);
+    let mounted = true;
+    loadCurrentBusinessData()
+      .then((remoteData) => {
+        if (!mounted) return;
+        setData(remoteData ?? loadData());
+        setReady(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setData(loadData());
+        setReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (ready) saveData(data);
+    if (!ready) return;
+    saveData(data);
+    void saveBusinessData(data);
   }, [data, ready]);
 
   const activeServices = useMemo(() => data.services.filter((service) => service.active), [data.services]);
@@ -291,6 +307,12 @@ export function useAgendaStore() {
       staff: [],
       appointments: [],
     }));
+    void ensureCurrentUserBusinessMembership({
+      businessId: id,
+      ownerName: input.ownerName,
+      ownerEmail: input.ownerEmail,
+    });
+    void saveConsentEvent({ businessId: id, consentType: "terms_and_privacy", version: "2026-05-26" });
   }
 
   function updatePlan(planId: PlanCycle, paymentProvider: PaymentProvider) {

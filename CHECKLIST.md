@@ -8,34 +8,36 @@
 - [x] Ativar RLS nas tabelas principais.
 - [x] Criar politicas para loja acessar apenas seus proprios dados.
 - [x] Criar politicas para leitura publica da agenda por slug.
-- [ ] Ligar telas ao Supabase em vez de `localStorage`.
+- [x] Criar camada de dados Supabase com fallback local.
+- [x] Ligar painel e agenda publica a camada Supabase quando configurada.
+- [ ] Remover fallback `localStorage` no modo producao.
 - [ ] Criar seed de demo separado dos dados reais.
 
 ## 2. Autenticacao real
 
 - [x] Preparar Supabase Auth com e-mail e senha no client.
 - [x] Preparar login com Google no client.
-- [ ] Criar recuperacao de senha.
-- [ ] Proteger `/painel` para usuarios logados.
-- [ ] Proteger `/interno` para usuario administrador.
+- [x] Criar recuperacao de senha.
+- [x] Proteger `/painel` para usuarios logados.
+- [x] Proteger `/interno` para usuario administrador.
 - [ ] Remover login demonstrativo fixo antes da producao.
 
 ## 3. Multiempresa
 
-- [ ] Cada usuario deve acessar apenas a propria loja.
-- [ ] Permitir mais de um usuario por loja.
-- [ ] Criar papeis: dono, atendente e admin da plataforma.
+- [x] Preparar RLS para cada usuario acessar apenas a propria loja.
+- [x] Preparar mais de um usuario por loja no schema.
+- [x] Criar papeis no schema: dono, atendente e admin da plataforma.
 - [ ] Painel interno listar lojas cadastradas do banco.
 - [ ] Bloquear slug duplicado.
 
 ## 4. Pagamentos e planos
 
-- [ ] Escolher provedor inicial para Brasil.
-- [ ] Implementar checkout do plano mensal.
-- [ ] Implementar checkout do plano trimestral.
-- [ ] Implementar checkout do plano anual.
-- [ ] Criar webhook de pagamento.
-- [ ] Ativar/cancelar loja conforme pagamento.
+- [x] Escolher provedor inicial para Brasil.
+- [x] Preparar checkout do plano mensal.
+- [x] Preparar checkout do plano trimestral.
+- [x] Preparar checkout do plano anual.
+- [x] Criar webhook base de pagamento.
+- [ ] Validar webhook com API do Mercado Pago e ativar/cancelar loja conforme pagamento.
 - [ ] Aplicar limite do plano gratuito.
 
 ## 5. Agenda profissional
@@ -52,7 +54,7 @@
 
 - [x] Criar pagina de Politica de Privacidade.
 - [x] Criar pagina de Termos de Uso.
-- [ ] Salvar aceite com IP, user agent e versao do termo.
+- [x] Preparar salvamento de aceite com user agent e versao do termo.
 - [ ] Criar exportacao de dados da loja.
 - [ ] Criar exclusao/anonimizacao de dados.
 
