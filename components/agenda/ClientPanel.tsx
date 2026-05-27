@@ -5,7 +5,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { AppShell, ButtonLink, EmptyState, MetricCard, Panel, PrimaryButton } from "@/components/ui/AppShell";
 import { displayDate, money, todayInput, whatsappLink } from "@/lib/format";
 import { agendaPlans, getPlan, useAgendaStore } from "@/lib/agenda-store";
-import type { AppointmentStatus, PaymentProvider, PlanCycle, Weekday, WeeklySchedule } from "@/types/agenda";
+import type { Appointment, AppointmentStatus, PaymentProvider, PlanCycle, Weekday, WeeklySchedule } from "@/types/agenda";
 
 type Section = "dashboard" | "appointments" | "services" | "staff" | "settings" | "billing";
 
@@ -70,32 +70,81 @@ function sectionTitle(section: Section) {
 }
 
 function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
+  const [dashboardDate, setDashboardDate] = useState(todayInput());
   const [serviceFilter, setServiceFilter] = useState("all");
   const [staffFilter, setStaffFilter] = useState("all");
-  const filteredAppointments = useMemo(
+  const dayAppointments = useMemo(
     () =>
-      store.appointments.filter((appointment) => {
-        const byService = serviceFilter === "all" || appointment.serviceId === serviceFilter;
-        const byStaff = staffFilter === "all" || appointment.staffId === staffFilter;
-        return byService && byStaff;
-      }),
-    [serviceFilter, staffFilter, store.appointments],
+      store.appointments
+        .filter((appointment) => {
+          const byDate = appointment.date === dashboardDate;
+          const byService = serviceFilter === "all" || appointment.serviceId === serviceFilter;
+          const byStaff = staffFilter === "all" || appointment.staffId === staffFilter;
+          return byDate && byService && byStaff;
+        })
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    [dashboardDate, serviceFilter, staffFilter, store.appointments],
   );
-  const nextAppointments = useMemo(
-    () => [...filteredAppointments].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)).slice(0, 5),
-    [filteredAppointments],
+  const openAppointments = useMemo(
+    () => dayAppointments.filter((appointment) => appointment.status !== "done" && appointment.status !== "canceled"),
+    [dayAppointments],
   );
+  const currentAppointment = openAppointments[0];
+  const nextQueue = openAppointments.slice(1, 6);
+  const completedCount = dayAppointments.filter((appointment) => appointment.status === "done").length;
+  const dayRevenue = dayAppointments
+    .filter((appointment) => appointment.status !== "canceled")
+    .reduce((total, appointment) => total + (store.services.find((item) => item.id === appointment.serviceId)?.price ?? 0), 0);
+  const filteredStaff = store.staff.filter((person) => staffFilter === "all" || person.id === staffFilter);
+  const filteredServiceName = serviceFilter === "all" ? "Todos os servicos" : store.services.find((item) => item.id === serviceFilter)?.name;
+  const filteredStaffName = staffFilter === "all" ? "Todos os profissionais" : store.staff.find((item) => item.id === staffFilter)?.name;
+
+  function clearFilters() {
+    setDashboardDate(todayInput());
+    setServiceFilter("all");
+    setStaffFilter("all");
+  }
 
   return (
     <>
+      <Panel className="mb-4 border-brand/30 bg-brand/5">
+        <div className="grid grid-cols-[1.2fr_0.8fr] gap-4 max-lg:grid-cols-1">
+          <div>
+            <p className="font-black uppercase text-brand">Fila de atendimento</p>
+            <h3 className="mt-1 text-3xl font-black max-md:text-2xl">{displayDate(dashboardDate)}</h3>
+            <p className="mt-2 max-w-2xl text-sm font-bold text-muted">
+              Veja quem deve ser atendido agora e mantenha a ordem do dia atualizada conforme os horarios forem confirmados, concluidos ou cancelados.
+            </p>
+          </div>
+          <div className="grid gap-3 rounded-card border border-line bg-white p-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-black uppercase text-muted">Servico</p>
+                <strong>{filteredServiceName}</strong>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase text-muted">Profissional</p>
+                <strong>{filteredStaffName}</strong>
+              </div>
+            </div>
+            <button type="button" className="min-h-11 rounded-card bg-brand px-4 font-black text-white" onClick={clearFilters}>
+              Ver hoje completo
+            </button>
+          </div>
+        </div>
+      </Panel>
       <div className="grid grid-cols-4 gap-4 max-xl:grid-cols-2 max-md:grid-cols-1">
-        <MetricCard label="Hoje" value={store.metrics.todayAppointments} />
-        <MetricCard label="Mes" value={store.metrics.monthAppointments} />
-        <MetricCard label="Receita prevista" value={money(store.metrics.revenue)} tone="green" />
-        <MetricCard label="Plano" value={getPlan(store.business.plan).name} tone="rust" />
+        <MetricCard label="Atendimentos do dia" value={dayAppointments.length} />
+        <MetricCard label="Ainda na fila" value={openAppointments.length} />
+        <MetricCard label="Concluidos" value={completedCount} tone="green" />
+        <MetricCard label="Receita do dia" value={money(dayRevenue)} tone="rust" />
       </div>
       <Panel className="mt-4">
-        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-3 max-lg:grid-cols-1">
+        <div className="grid grid-cols-[0.8fr_1fr_1fr_auto] items-end gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
+          <label>
+            Dia
+            <input type="date" value={dashboardDate} onChange={(event) => setDashboardDate(event.target.value)} />
+          </label>
           <label>
             Filtrar por servico
             <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
@@ -118,46 +167,82 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            className="min-h-11 rounded-card border border-line px-4 font-black"
-            onClick={() => {
-              setServiceFilter("all");
-              setStaffFilter("all");
-            }}
-          >
+          <button type="button" className="min-h-11 rounded-card border border-line px-4 font-black" onClick={clearFilters}>
             Limpar filtros
           </button>
         </div>
       </Panel>
-      <div className="mt-4 grid grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] gap-4 max-lg:grid-cols-1">
-        <Panel>
-          <h3 className="mb-4 text-lg font-black">Proximos horarios</h3>
-          <div className="grid gap-3">
-            {nextAppointments.length ? (
-              nextAppointments.map((appointment) => <AppointmentMini key={appointment.id} store={store} appointmentId={appointment.id} />)
+      <div className="mt-4 grid grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] gap-4 max-lg:grid-cols-1">
+        <div className="grid gap-4">
+          <Panel className="border-brand/40">
+            <div className="mb-4 flex items-center justify-between gap-3 max-md:flex-col max-md:items-start">
+              <div>
+                <p className="text-xs font-black uppercase text-brand">Atendimento atual</p>
+                <h3 className="text-2xl font-black">Proximo da fila</h3>
+              </div>
+              {currentAppointment && <StatusPill status={currentAppointment.status} />}
+            </div>
+            {currentAppointment ? (
+              <CurrentAppointmentCard store={store} appointment={currentAppointment} />
             ) : (
-              <EmptyState>Nenhum horario encontrado para os filtros atuais.</EmptyState>
+              <EmptyState>Nenhum atendimento pendente para os filtros atuais.</EmptyState>
             )}
-          </div>
-        </Panel>
+          </Panel>
+          <Panel>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-black">Depois dele</h3>
+              <span className="text-sm font-bold text-muted">{nextQueue.length} proximos</span>
+            </div>
+            <div className="grid gap-3">
+              {nextQueue.length ? (
+                nextQueue.map((appointment, index) => (
+                  <QueueAppointment key={appointment.id} store={store} appointment={appointment} position={index + 2} />
+                ))
+              ) : (
+                <EmptyState>Nao ha outros horarios pendentes na fila.</EmptyState>
+              )}
+            </div>
+          </Panel>
+        </div>
         <Panel>
-          <h3 className="mb-4 text-lg font-black">Resumo por profissional</h3>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h3 className="text-lg font-black">Ordem completa do dia</h3>
+            <span className="text-sm font-bold text-muted">{dayAppointments.length} horarios</span>
+          </div>
           <div className="grid gap-3">
-            {store.staff.length ? (
-              store.staff
-                .filter((person) => staffFilter === "all" || person.id === staffFilter)
-                .map((person) => (
-                <div key={person.id} className="rounded-card border border-line p-3">
-                  <strong>{person.name}</strong>
-                  <p className="text-sm text-muted">
-                    {filteredAppointments.filter((item) => item.staffId === person.id).length} horarios registrados
-                  </p>
-                </div>
+            {dayAppointments.length ? (
+              dayAppointments.map((appointment, index) => (
+                <DayAppointmentRow key={appointment.id} store={store} appointment={appointment} position={index + 1} />
               ))
             ) : (
-              <EmptyState>Nenhum profissional cadastrado.</EmptyState>
+              <EmptyState>Nenhum horario encontrado para este dia.</EmptyState>
             )}
+          </div>
+          <div className="mt-5 border-t border-line pt-5">
+            <h3 className="mb-4 text-lg font-black">Resumo por profissional</h3>
+            <div className="grid gap-3">
+              {filteredStaff.length ? (
+                filteredStaff.map((person) => {
+                  const personAppointments = dayAppointments.filter((item) => item.staffId === person.id);
+                  const personOpen = personAppointments.filter((item) => item.status !== "done" && item.status !== "canceled").length;
+                  return (
+                    <div key={person.id} className="rounded-card border border-line p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <strong>{person.name}</strong>
+                          <p className="text-sm text-muted">
+                            {personAppointments.length} horarios no dia, {personOpen} em aberto
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">{personOpen}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <EmptyState>Nenhum profissional cadastrado.</EmptyState>
+              )}
+            </div>
           </div>
         </Panel>
       </div>
@@ -165,23 +250,174 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
   );
 }
 
-function AppointmentMini({ store, appointmentId }: { store: ReturnType<typeof useAgendaStore>; appointmentId: string }) {
-  const appointment = store.appointments.find((item) => item.id === appointmentId);
-  if (!appointment) return null;
+function CurrentAppointmentCard({ store, appointment }: { store: ReturnType<typeof useAgendaStore>; appointment: Appointment }) {
   const service = store.services.find((item) => item.id === appointment.serviceId);
+  const staff = store.staff.find((item) => item.id === appointment.staffId);
+  const message = appointmentMessage(appointment, service?.name ?? "servico", store.business.name);
+
   return (
-    <div className="flex items-start justify-between gap-3 rounded-card border border-line p-3">
-      <div>
-        <strong>
-          {displayDate(appointment.date)} as {appointment.time}
-        </strong>
-        <p className="text-sm text-muted">
-          {appointment.client} - {service?.name ?? "Servico"}
-        </p>
+    <div className="grid gap-4">
+      <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-4 max-md:grid-cols-1">
+        <div className="flex min-h-28 flex-col items-center justify-center rounded-card bg-ink p-4 text-center text-white">
+          <span className="text-sm font-black uppercase">Horario</span>
+          <strong className="text-4xl font-black">{appointment.time}</strong>
+        </div>
+        <div className="grid content-center gap-2">
+          <h4 className="text-3xl font-black max-md:text-2xl">{appointment.client}</h4>
+          <p className="text-muted">
+            {service?.name ?? "Servico"} com {staff?.name ?? "profissional"}
+          </p>
+          <p className="text-sm font-bold text-muted">Origem: {appointment.source === "public" ? "Agendamento publico" : "Criado pela loja"}</p>
+        </div>
       </div>
-      <span className="rounded-full bg-brand px-3 py-1 text-xs font-black text-white">{appointment.status}</span>
+      <div className="flex flex-wrap gap-3">
+        <AppointmentActions store={store} appointment={appointment} message={message} />
+      </div>
     </div>
   );
+}
+
+function QueueAppointment({
+  store,
+  appointment,
+  position,
+}: {
+  store: ReturnType<typeof useAgendaStore>;
+  appointment: Appointment;
+  position: number;
+}) {
+  const service = store.services.find((item) => item.id === appointment.serviceId);
+  const staff = store.staff.find((item) => item.id === appointment.staffId);
+  const message = appointmentMessage(appointment, service?.name ?? "servico", store.business.name);
+
+  return (
+    <div className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 rounded-card border border-line p-3 max-md:grid-cols-[48px_minmax(0,1fr)]">
+      <div className="flex size-12 items-center justify-center rounded-full bg-brand/10 text-lg font-black text-brand">{position}</div>
+      <div>
+        <strong>
+          {appointment.time} - {appointment.client}
+        </strong>
+        <p className="text-sm text-muted">
+          {service?.name ?? "Servico"} com {staff?.name ?? "profissional"}
+        </p>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2 max-md:col-span-2 max-md:justify-start">
+        <StatusPill status={appointment.status} />
+        <a className="rounded-card border border-line px-3 py-2 text-sm font-black" href={whatsappLink(appointment.phone, message)} target="_blank" rel="noreferrer">
+          WhatsApp
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function DayAppointmentRow({
+  store,
+  appointment,
+  position,
+}: {
+  store: ReturnType<typeof useAgendaStore>;
+  appointment: Appointment;
+  position: number;
+}) {
+  const service = store.services.find((item) => item.id === appointment.serviceId);
+  const staff = store.staff.find((item) => item.id === appointment.staffId);
+  return (
+    <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 rounded-card border border-line p-3 max-md:grid-cols-[40px_minmax(0,1fr)]">
+      <span className="flex size-10 items-center justify-center rounded-full bg-paper text-sm font-black">{position}</span>
+      <div>
+        <strong>
+          {appointment.time} - {appointment.client}
+        </strong>
+        <p className="text-sm text-muted">
+          {service?.name ?? "Servico"} / {staff?.name ?? "profissional"}
+        </p>
+      </div>
+      <div className="flex items-center justify-end gap-2 max-md:col-span-2 max-md:justify-start">
+        <StatusPill status={appointment.status} />
+        {appointment.status !== "done" && appointment.status !== "canceled" && (
+          <button
+            type="button"
+            className="rounded-card border border-line px-3 py-2 text-sm font-black"
+            onClick={() => store.updateAppointmentStatus(appointment.id, "done")}
+          >
+            Concluir
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AppointmentActions({
+  store,
+  appointment,
+  message,
+}: {
+  store: ReturnType<typeof useAgendaStore>;
+  appointment: Appointment;
+  message: string;
+}) {
+  const isOpen = appointment.status !== "done" && appointment.status !== "canceled";
+
+  return (
+    <>
+      {appointment.status === "scheduled" && (
+        <button
+          type="button"
+          className="min-h-11 rounded-card bg-brand px-4 font-black text-white"
+          onClick={() => store.updateAppointmentStatus(appointment.id, "confirmed")}
+        >
+          Confirmar
+        </button>
+      )}
+      {isOpen && (
+        <button
+          type="button"
+          className="min-h-11 rounded-card bg-ink px-4 font-black text-white"
+          onClick={() => store.updateAppointmentStatus(appointment.id, "done")}
+        >
+          Concluir atendimento
+        </button>
+      )}
+      {isOpen && (
+        <button
+          type="button"
+          className="min-h-11 rounded-card border border-line px-4 font-black"
+          onClick={() => store.updateAppointmentStatus(appointment.id, "canceled")}
+        >
+          Cancelar
+        </button>
+      )}
+      <a className="inline-flex min-h-11 items-center rounded-card border border-line px-4 font-black" href={whatsappLink(appointment.phone, message)} target="_blank" rel="noreferrer">
+        WhatsApp
+      </a>
+    </>
+  );
+}
+
+function StatusPill({ status }: { status: AppointmentStatus }) {
+  const classes = {
+    scheduled: "bg-rust/10 text-rust border-rust/30",
+    confirmed: "bg-brand/10 text-brand border-brand/30",
+    done: "bg-ink/10 text-ink border-ink/30",
+    canceled: "bg-red-50 text-red-700 border-red-200",
+  }[status];
+
+  return <span className={`rounded-full border px-3 py-1 text-xs font-black ${classes}`}>{statusLabel(status)}</span>;
+}
+
+function statusLabel(status: AppointmentStatus) {
+  return {
+    scheduled: "Aguardando",
+    confirmed: "Confirmado",
+    done: "Concluido",
+    canceled: "Cancelado",
+  }[status];
+}
+
+function appointmentMessage(appointment: Appointment, serviceName: string, businessName: string) {
+  return `Ola ${appointment.client}, seu horario de ${serviceName} na ${businessName} esta marcado para ${displayDate(appointment.date)} as ${appointment.time}.`;
 }
 
 function Appointments({

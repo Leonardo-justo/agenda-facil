@@ -116,8 +116,8 @@ const seedData: AgendaData = {
       phone: "5511988887777",
       serviceId: "svc-corte",
       staffId: "staff-ana",
-      date: addDaysInput(1),
-      time: "10:00",
+      date: todayInput(),
+      time: "08:30",
       status: "confirmed",
       source: "owner",
       createdAt: new Date().toISOString(),
@@ -129,8 +129,21 @@ const seedData: AgendaData = {
       phone: "5511977776666",
       serviceId: "svc-pet",
       staffId: "staff-bruno",
-      date: addDaysInput(1),
-      time: "14:30",
+      date: todayInput(),
+      time: "09:30",
+      status: "scheduled",
+      source: "public",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "apt-3",
+      businessId,
+      client: "Camila Nunes",
+      phone: "5511966665555",
+      serviceId: "svc-manicure",
+      staffId: "staff-camila",
+      date: todayInput(),
+      time: "10:30",
       status: "scheduled",
       source: "public",
       createdAt: new Date().toISOString(),
@@ -151,13 +164,16 @@ function createId(prefix: string) {
 
 function normalizeData(data: AgendaData): AgendaData {
   const business = data.business as Partial<Business>;
+  const services = Array.isArray(data.services) ? data.services : [];
+  const staff = Array.isArray(data.staff) ? data.staff : [];
+  const appointments = Array.isArray(data.appointments) ? data.appointments : [];
   const plan = (business.plan ?? "monthly") as PlanCycle;
   const isDemoBusiness = business.id === businessId || business.slug === "studio-aurora";
   return {
     ...data,
-    services: isDemoBusiness ? data.services : data.services.filter((service) => !seedServiceIds.has(service.id)),
-    staff: isDemoBusiness ? data.staff : data.staff.filter((person) => !seedStaffIds.has(person.id)),
-    appointments: isDemoBusiness ? data.appointments : data.appointments.filter((appointment) => !seedAppointmentIds.has(appointment.id)),
+    services: isDemoBusiness ? services : services.filter((service) => !seedServiceIds.has(service.id)),
+    staff: isDemoBusiness ? staff : staff.filter((person) => !seedStaffIds.has(person.id)),
+    appointments: isDemoBusiness ? appointments : appointments.filter((appointment) => !seedAppointmentIds.has(appointment.id)),
     business: {
       ...data.business,
       logoUrl: business.logoUrl ?? "",
