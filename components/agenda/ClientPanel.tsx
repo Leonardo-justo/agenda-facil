@@ -172,6 +172,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
           </button>
         </div>
       </Panel>
+      <ProfessionalScheduleGrid store={store} appointments={dayAppointments} date={dashboardDate} staff={filteredStaff} />
       <div className="mt-4 grid grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] gap-4 max-lg:grid-cols-1">
         <div className="grid gap-4">
           <Panel className="border-brand/40">
@@ -248,6 +249,164 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
       </div>
     </>
   );
+}
+
+function ProfessionalScheduleGrid({
+  store,
+  appointments,
+  date,
+  staff,
+}: {
+  store: ReturnType<typeof useAgendaStore>;
+  appointments: Appointment[];
+  date: string;
+  staff: ReturnType<typeof useAgendaStore>["staff"];
+}) {
+  const weekday = String(new Date(`${date}T00:00:00`).getDay()) as Weekday;
+  const schedule = store.business.schedule[weekday];
+  const slots = useMemo(() => (schedule?.enabled ? buildDashboardSlots(schedule.open, schedule.close) : []), [schedule]);
+  const activeStaff = staff.filter((person) => person.active);
+
+  return (
+    <Panel className="mt-4">
+      <div className="mb-4 flex items-start justify-between gap-3 max-md:flex-col">
+        <div>
+          <h3 className="text-lg font-black">Grade por profissional</h3>
+          <p className="text-sm font-bold text-muted">Mapa de disponibilidade em tempo real por horario e profissional.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-black">
+          <span className="rounded-full border border-line bg-white px-3 py-1">Livre</span>
+          <span className="rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-brand">Confirmado</span>
+          <span className="rounded-full border border-rust/30 bg-rust/10 px-3 py-1 text-rust">Aguardando</span>
+          <span className="rounded-full border border-ink/30 bg-ink/10 px-3 py-1 text-ink">Concluido</span>
+        </div>
+      </div>
+      {!schedule?.enabled && <EmptyState>Loja fechada neste dia conforme horario configurado.</EmptyState>}
+      {schedule?.enabled && !activeStaff.length && <EmptyState>Nenhum profissional ativo encontrado para a grade.</EmptyState>}
+      {schedule?.enabled && activeStaff.length > 0 && (
+        <div className="overflow-x-auto">
+          <div className="min-w-[820px]">
+            <div
+              className="grid border-b border-line text-sm font-black"
+              style={{ gridTemplateColumns: `88px repeat(${activeStaff.length}, minmax(180px, 1fr))` }}
+            >
+              <div className="sticky left-0 z-10 bg-white p-3 text-muted">Horario</div>
+              {activeStaff.map((person) => (
+                <div key={person.id} className="p-3">
+                  <strong>{person.name}</strong>
+                  <p className="text-xs font-bold text-muted">{person.role}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid">
+              {slots.map((slot) => (
+                <div
+                  key={slot}
+                  className="grid border-b border-line last:border-b-0"
+                  style={{ gridTemplateColumns: `88px repeat(${activeStaff.length}, minmax(180px, 1fr))` }}
+                >
+                  <div className="sticky left-0 z-10 flex items-center bg-white p-3 font-black">{slot}</div>
+                  {activeStaff.map((person) => (
+                    <ScheduleCell key={`${person.id}-${slot}`} store={store} appointments={appointments} staffId={person.id} slot={slot} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function ScheduleCell({
+  store,
+  appointments,
+  staffId,
+  slot,
+}: {
+  store: ReturnType<typeof useAgendaStore>;
+  appointments: Appointment[];
+  staffId: string;
+  slot: string;
+}) {
+  const appointment = appointments.find((item) => item.staffId === staffId && item.time === slot);
+  const continuation = appointments.find((item) => {
+    if (item.staffId !== staffId || item.status === "canceled" || item.time === slot) return false;
+    const service = store.services.find((serviceItem) => serviceItem.id === item.serviceId);
+    const start = timeToMinutes(item.time);
+    const end = start + (service?.duration ?? 30);
+    const current = timeToMinutes(slot);
+    return current > start && current < end;
+  });
+
+  if (appointment) {
+    const service = store.services.find((item) => item.id === appointment.serviceId);
+    return (
+      <div className={`min-h-20 p-2 ${scheduleCellClass(appointment.status)}`}>
+        <div className="rounded-card border border-current/20 bg-white/70 p-3">
+          <div className="flex items-start justify-between gap-2">
+            <strong className="text-sm">{appointment.client}</strong>
+            <StatusPill status={appointment.status} />
+          </div>
+          <p className="mt-1 text-xs font-bold text-muted">
+            {service?.name ?? "Servico"} - {service?.duration ?? 30} min
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (continuation) {
+    const service = store.services.find((item) => item.id === continuation.serviceId);
+    return (
+      <div className="min-h-20 bg-ink/5 p-2 text-xs font-bold text-muted">
+        <div className="rounded-card border border-dashed border-line p-3">
+          Ocupado por {continuation.client}
+          <p>{service?.name ?? "Servico"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-20 p-2">
+      <div className="flex h-full items-center justify-center rounded-card border border-dashed border-line text-sm font-black text-muted">
+        Livre
+      </div>
+    </div>
+  );
+}
+
+function buildDashboardSlots(open: string, close: string) {
+  const result: string[] = [];
+  let current = timeToMinutes(open);
+  const end = timeToMinutes(close);
+  while (current < end) {
+    result.push(minutesToTime(current));
+    current += 30;
+  }
+  return result;
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(value: number) {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function scheduleCellClass(status: AppointmentStatus) {
+  return {
+    scheduled: "bg-rust/10",
+    confirmed: "bg-brand/10",
+    done: "bg-ink/10",
+    canceled: "bg-red-50",
+  }[status];
 }
 
 function CurrentAppointmentCard({ store, appointment }: { store: ReturnType<typeof useAgendaStore>; appointment: Appointment }) {
