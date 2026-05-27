@@ -5,9 +5,19 @@ import { FormEvent, useMemo, useState } from "react";
 import { AppShell, ButtonLink, EmptyState, MetricCard, Panel, PrimaryButton } from "@/components/ui/AppShell";
 import { displayDate, money, todayInput, whatsappLink } from "@/lib/format";
 import { agendaPlans, getPlan, useAgendaStore } from "@/lib/agenda-store";
-import type { AppointmentStatus, PaymentProvider, PlanCycle } from "@/types/agenda";
+import type { AppointmentStatus, PaymentProvider, PlanCycle, Weekday, WeeklySchedule } from "@/types/agenda";
 
 type Section = "dashboard" | "appointments" | "services" | "staff" | "settings" | "billing";
+
+const weekdays: Array<{ id: Weekday; label: string }> = [
+  { id: "1", label: "Segunda" },
+  { id: "2", label: "Terca" },
+  { id: "3", label: "Quarta" },
+  { id: "4", label: "Quinta" },
+  { id: "5", label: "Sexta" },
+  { id: "6", label: "Sabado" },
+  { id: "0", label: "Domingo" },
+];
 
 export function ClientPanel() {
   const store = useAgendaStore();
@@ -135,7 +145,7 @@ function Appointments({
   const [date, setDate] = useState(todayInput());
   const [serviceId, setServiceId] = useState(store.activeServices[0]?.id ?? "");
   const [staffId, setStaffId] = useState(store.activeStaff[0]?.id ?? "");
-  const slots = store.availableSlots(date, staffId);
+  const slots = store.availableSlots(date, staffId, serviceId);
   const canCreateAppointment = store.activeServices.length > 0 && store.activeStaff.length > 0;
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -149,6 +159,7 @@ function Appointments({
       date,
       time: String(form.get("time")),
       source: "owner",
+      status: store.business.confirmationMode === "automatic" ? "confirmed" : "scheduled",
     });
     event.currentTarget.reset();
   }
@@ -197,9 +208,7 @@ function Appointments({
             <label>
               Horario
               <select name="time" required>
-                {slots.map((slot) => (
-                  <option key={slot}>{slot}</option>
-                ))}
+                {slots.length ? slots.map((slot) => <option key={slot}>{slot}</option>) : <option value="">Sem horarios</option>}
               </select>
             </label>
           </div>
@@ -239,7 +248,7 @@ function Appointments({
                         value={appointment.status}
                         onChange={(event) => store.updateAppointmentStatus(appointment.id, event.target.value as AppointmentStatus)}
                       >
-                        <option value="scheduled">Agendado</option>
+                        <option value="scheduled">Aguardando confirmacao</option>
                         <option value="confirmed">Confirmado</option>
                         <option value="done">Concluido</option>
                         <option value="canceled">Cancelado</option>
@@ -249,6 +258,15 @@ function Appointments({
                       <a className="font-black text-brand" href={whatsappLink(appointment.phone, message)} target="_blank" rel="noreferrer">
                         WhatsApp
                       </a>
+                      {appointment.status === "scheduled" && (
+                        <button
+                          type="button"
+                          className="ml-3 font-black text-brand"
+                          onClick={() => store.updateAppointmentStatus(appointment.id, "confirmed")}
+                        >
+                          Confirmar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -380,6 +398,16 @@ function Settings({ store }: { store: ReturnType<typeof useAgendaStore> }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const schedule = weekdays.reduce((acc, day) => {
+      acc[day.id] = {
+        enabled: form.get(`day-${day.id}`) === "on",
+        open: String(form.get(`open-${day.id}`) || store.business.open),
+        close: String(form.get(`close-${day.id}`) || store.business.close),
+        breakStart: String(form.get(`breakStart-${day.id}`) || "00:00"),
+        breakEnd: String(form.get(`breakEnd-${day.id}`) || "00:00"),
+      };
+      return acc;
+    }, {} as WeeklySchedule);
     store.updateBusiness({
       ownerName: String(form.get("ownerName")),
       ownerEmail: String(form.get("ownerEmail")),
@@ -392,6 +420,8 @@ function Settings({ store }: { store: ReturnType<typeof useAgendaStore> }) {
       logoUrl: String(form.get("logoUrl")),
       open: String(form.get("open")),
       close: String(form.get("close")),
+      schedule,
+      confirmationMode: String(form.get("confirmationMode")) as "manual" | "automatic",
     });
   }
 
@@ -451,6 +481,45 @@ function Settings({ store }: { store: ReturnType<typeof useAgendaStore> }) {
               Fecha
               <input name="close" type="time" defaultValue={store.business.close} />
             </label>
+          </div>
+          <label>
+            Confirmacao de agendamento
+            <select name="confirmationMode" defaultValue={store.business.confirmationMode}>
+              <option value="manual">Manual: cliente solicita e a loja confirma</option>
+              <option value="automatic">Automatica: horario ja entra confirmado</option>
+            </select>
+          </label>
+          <div>
+            <h4 className="mb-3 text-sm font-black text-ink">Horarios por dia</h4>
+            <div className="grid gap-3">
+              {weekdays.map((day) => {
+                const item = store.business.schedule?.[day.id];
+                return (
+                  <div key={day.id} className="grid grid-cols-[130px_repeat(4,minmax(0,1fr))] items-end gap-2 rounded-card border border-line p-3 max-lg:grid-cols-2">
+                    <label className="flex-row items-center gap-2 text-ink">
+                      <input className="w-auto" type="checkbox" name={`day-${day.id}`} defaultChecked={item?.enabled} />
+                      {day.label}
+                    </label>
+                    <label>
+                      Abre
+                      <input name={`open-${day.id}`} type="time" defaultValue={item?.open ?? store.business.open} />
+                    </label>
+                    <label>
+                      Fecha
+                      <input name={`close-${day.id}`} type="time" defaultValue={item?.close ?? store.business.close} />
+                    </label>
+                    <label>
+                      Pausa inicio
+                      <input name={`breakStart-${day.id}`} type="time" defaultValue={item?.breakStart ?? "00:00"} />
+                    </label>
+                    <label>
+                      Pausa fim
+                      <input name={`breakEnd-${day.id}`} type="time" defaultValue={item?.breakEnd ?? "00:00"} />
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <PrimaryButton>Salvar dados</PrimaryButton>
         </form>

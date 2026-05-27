@@ -47,6 +47,8 @@ create table if not exists businesses (
   category text not null,
   open_time time not null,
   close_time time not null,
+  schedule jsonb not null default '{}'::jsonb,
+  confirmation_mode text not null default 'manual' check (confirmation_mode in ('manual', 'automatic')),
   plan_id text not null references plans(id),
   plan_price numeric(10, 2) not null default 0,
   payment_provider text not null default 'mercado_pago' check (payment_provider in ('mercado_pago', 'infinite_pay', 'stripe')),

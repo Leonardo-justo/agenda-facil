@@ -42,9 +42,11 @@
 
 ## 5. Agenda profissional
 
-- [ ] Horarios por dia da semana.
+- [x] Horarios por dia da semana.
 - [ ] Bloqueio de horarios e feriados.
-- [ ] Intervalo de almoco.
+- [x] Intervalo de almoco.
+- [x] Validar conflito por duracao do servico.
+- [x] Fluxo de confirmacao manual ou automatica.
 - [ ] Reagendamento pelo cliente.
 - [ ] Cancelamento pelo cliente.
 - [ ] Historico de status.

@@ -11,12 +11,23 @@ import type {
   PlanCycle,
   Service,
   StaffMember,
+  WeeklySchedule,
 } from "@/types/agenda";
 import { addDaysInput, onlyDigits, slugify, todayInput } from "@/lib/format";
 import { ensureCurrentUserBusinessMembership, loadCurrentBusinessData, saveBusinessData, saveConsentEvent } from "@/lib/agenda-repository";
 
 const STORAGE_KEY = "agenda-facil-next-data";
 const businessId = "studio-aurora";
+
+export const defaultSchedule: WeeklySchedule = {
+  "0": { enabled: false, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "1": { enabled: true, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "2": { enabled: true, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "3": { enabled: true, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "4": { enabled: true, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "5": { enabled: true, open: "09:00", close: "18:00", breakStart: "12:00", breakEnd: "13:00" },
+  "6": { enabled: true, open: "09:00", close: "14:00", breakStart: "00:00", breakEnd: "00:00" },
+};
 
 export const agendaPlans: Plan[] = [
   {
@@ -76,6 +87,8 @@ const seedData: AgendaData = {
     category: "Salao de beleza",
     open: "09:00",
     close: "18:00",
+    schedule: defaultSchedule,
+    confirmationMode: "manual",
     plan: "monthly",
     planPrice: 79,
     paymentProvider: "mercado_pago",
@@ -152,6 +165,8 @@ function normalizeData(data: AgendaData): AgendaData {
       ownerEmail: business.ownerEmail ?? "admin@agenda.local",
       document: business.document ?? "",
       category: business.category ?? "Servicos",
+      schedule: business.schedule ?? defaultSchedule,
+      confirmationMode: business.confirmationMode ?? "manual",
       plan,
       paymentProvider: business.paymentProvider ?? "mercado_pago",
       subscriptionStatus: business.subscriptionStatus ?? "trial",
@@ -296,6 +311,8 @@ export function useAgendaStore() {
         phone: onlyDigits(input.phone),
         address: input.address,
         category: input.category,
+        schedule: defaultSchedule,
+        confirmationMode: "manual",
         plan: plan.id,
         planPrice: plan.price,
         paymentProvider: input.paymentProvider,
@@ -379,13 +396,31 @@ export function useAgendaStore() {
     }));
   }
 
-  function availableSlots(date: string, staffId: string) {
-    const reserved = new Set(
-      data.appointments
-        .filter((appointment) => appointment.date === date && appointment.staffId === staffId && appointment.status !== "canceled")
-        .map((appointment) => appointment.time),
-    );
-    return buildSlots(data.business.open, data.business.close).filter((slot) => !reserved.has(slot));
+  function availableSlots(date: string, staffId: string, serviceId?: string) {
+    const weekday = String(new Date(`${date}T00:00:00`).getDay()) as keyof WeeklySchedule;
+    const schedule = data.business.schedule?.[weekday] ?? defaultSchedule[weekday];
+    if (!schedule.enabled) return [];
+
+    const serviceDuration = data.services.find((service) => service.id === serviceId)?.duration ?? 30;
+    const breakStart = timeToMinutes(schedule.breakStart);
+    const breakEnd = timeToMinutes(schedule.breakEnd);
+    const hasBreak = schedule.breakStart !== schedule.breakEnd;
+    const close = timeToMinutes(schedule.close);
+    const reserved = data.appointments
+      .filter((appointment) => appointment.date === date && appointment.staffId === staffId && appointment.status !== "canceled")
+      .map((appointment) => {
+        const service = data.services.find((item) => item.id === appointment.serviceId);
+        const start = timeToMinutes(appointment.time);
+        return { start, end: start + (service?.duration ?? 30) };
+      });
+
+    return buildSlots(schedule.open, schedule.close).filter((slot) => {
+      const start = timeToMinutes(slot);
+      const end = start + serviceDuration;
+      if (end > close) return false;
+      if (hasBreak && start < breakEnd && end > breakStart) return false;
+      return !reserved.some((appointment) => start < appointment.end && end > appointment.start);
+    });
   }
 
   return {

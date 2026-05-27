@@ -31,6 +31,9 @@ SaaS de agenda online para negocios de servicos como salao, barbearia, manicure,
 - Agenda diaria com status.
 - Agendamento manual pelo dono.
 - Link publico para clientes agendarem.
+- Horarios por dia da semana com intervalo.
+- Validacao de disponibilidade por duracao do servico e horarios ocupados.
+- Confirmacao manual ou automatica de agendamentos.
 - Mensagem pronta para WhatsApp.
 - Persistencia local para demonstracao.
 - Schema inicial para Supabase em `supabase/schema.sql`.

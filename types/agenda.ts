@@ -1,6 +1,17 @@
 export type AppointmentStatus = "scheduled" | "confirmed" | "done" | "canceled";
 export type PlanCycle = "free" | "monthly" | "quarterly" | "annual";
 export type PaymentProvider = "stripe" | "mercado_pago" | "infinite_pay";
+export type Weekday = "0" | "1" | "2" | "3" | "4" | "5" | "6";
+
+export type DaySchedule = {
+  enabled: boolean;
+  open: string;
+  close: string;
+  breakStart: string;
+  breakEnd: string;
+};
+
+export type WeeklySchedule = Record<Weekday, DaySchedule>;
 
 export type Plan = {
   id: PlanCycle;
@@ -26,6 +37,8 @@ export type Business = {
   category: string;
   open: string;
   close: string;
+  schedule: WeeklySchedule;
+  confirmationMode: "manual" | "automatic";
   plan: PlanCycle;
   planPrice: number;
   paymentProvider: PaymentProvider;

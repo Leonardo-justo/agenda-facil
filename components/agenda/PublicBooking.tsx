@@ -6,7 +6,7 @@ import { Panel, PrimaryButton } from "@/components/ui/AppShell";
 import { todayInput, whatsappLink } from "@/lib/format";
 import { demoAgendaData, useAgendaStore } from "@/lib/agenda-store";
 import { createPublicAppointment, loadPublicBusinessData } from "@/lib/agenda-repository";
-import type { AgendaData, Appointment } from "@/types/agenda";
+import type { AgendaData, Appointment, WeeklySchedule } from "@/types/agenda";
 
 export function PublicBooking({ slug }: { slug: string }) {
   const store = useAgendaStore();
@@ -19,9 +19,13 @@ export function PublicBooking({ slug }: { slug: string }) {
   const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
   const [staffId, setStaffId] = useState(activeStaff[0]?.id ?? "");
   const [success, setSuccess] = useState("");
+  const selectedService = activeServices.find((service) => service.id === serviceId);
   const slots = useMemo(
-    () => (remoteData || isDemo ? buildSimpleSlots(data.business.open, data.business.close) : store.availableSlots(date, staffId)),
-    [data.business.close, data.business.open, isDemo, remoteData, staffId, store],
+    () =>
+      remoteData || isDemo
+        ? buildPublicSlots(date, data.business.schedule, selectedService?.duration ?? 30)
+        : store.availableSlots(date, staffId, serviceId),
+    [data.business.schedule, date, isDemo, remoteData, selectedService?.duration, serviceId, staffId, store],
   );
 
   useEffect(() => {
@@ -47,12 +51,16 @@ export function PublicBooking({ slug }: { slug: string }) {
       source: "public",
       id: `apt-${crypto.randomUUID()}`,
       businessId: data.business.id,
-      status: "scheduled" as const,
+      status: data.business.confirmationMode === "automatic" ? "confirmed" : "scheduled",
       createdAt: new Date().toISOString(),
     };
     const savedRemote = isDemo ? false : await createPublicAppointment(appointment);
     if (!savedRemote && !isDemo) store.addAppointment(appointment);
-    setSuccess("Agendamento recebido. Aguarde a confirmacao do estabelecimento.");
+    setSuccess(
+      data.business.confirmationMode === "automatic"
+        ? "Agendamento confirmado. A loja recebeu seu horario."
+        : "Agendamento recebido. Aguarde a confirmacao do estabelecimento.",
+    );
     event.currentTarget.reset();
   }
 
@@ -170,14 +178,25 @@ export function PublicBooking({ slug }: { slug: string }) {
   );
 }
 
-function buildSimpleSlots(open: string, close: string) {
+function buildPublicSlots(date: string, schedule: WeeklySchedule, serviceDuration: number) {
+  const weekday = String(new Date(`${date}T00:00:00`).getDay()) as keyof WeeklySchedule;
+  const day = schedule[weekday];
+  if (!day?.enabled) return [];
   const result: string[] = [];
-  const [openHour, openMinute] = open.split(":").map(Number);
-  const [closeHour, closeMinute] = close.split(":").map(Number);
+  const [openHour, openMinute] = day.open.split(":").map(Number);
+  const [closeHour, closeMinute] = day.close.split(":").map(Number);
+  const [breakStartHour, breakStartMinute] = day.breakStart.split(":").map(Number);
+  const [breakEndHour, breakEndMinute] = day.breakEnd.split(":").map(Number);
   let current = openHour * 60 + openMinute;
   const end = closeHour * 60 + closeMinute;
-  while (current < end) {
+  const breakStart = breakStartHour * 60 + breakStartMinute;
+  const breakEnd = breakEndHour * 60 + breakEndMinute;
+  const hasBreak = day.breakStart !== day.breakEnd;
+  while (current + serviceDuration <= end) {
+    const slotEnd = current + serviceDuration;
+    if (!hasBreak || current >= breakEnd || slotEnd <= breakStart) {
     result.push(`${String(Math.floor(current / 60)).padStart(2, "0")}:${String(current % 60).padStart(2, "0")}`);
+    }
     current += 30;
   }
   return result;
