@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Panel, PrimaryButton } from "@/components/ui/AppShell";
 import { todayInput, whatsappLink } from "@/lib/format";
-import { useAgendaStore } from "@/lib/agenda-store";
+import { demoAgendaData, useAgendaStore } from "@/lib/agenda-store";
 import { createPublicAppointment, loadPublicBusinessData } from "@/lib/agenda-repository";
 import type { AgendaData, Appointment } from "@/types/agenda";
 
@@ -12,13 +12,17 @@ export function PublicBooking({ slug }: { slug: string }) {
   const store = useAgendaStore();
   const [remoteData, setRemoteData] = useState<AgendaData | null>(null);
   const [date, setDate] = useState(todayInput());
-  const data = remoteData ?? store;
-  const activeServices = remoteData ? remoteData.services.filter((service) => service.active) : store.activeServices;
-  const activeStaff = remoteData ? remoteData.staff.filter((person) => person.active) : store.activeStaff;
+  const isDemo = slug === demoAgendaData.business.slug;
+  const data = remoteData ?? (isDemo ? demoAgendaData : store);
+  const activeServices = data.services.filter((service) => service.active);
+  const activeStaff = data.staff.filter((person) => person.active);
   const [serviceId, setServiceId] = useState(activeServices[0]?.id ?? "");
   const [staffId, setStaffId] = useState(activeStaff[0]?.id ?? "");
   const [success, setSuccess] = useState("");
-  const slots = useMemo(() => (remoteData ? buildSimpleSlots(remoteData.business.open, remoteData.business.close) : store.availableSlots(date, staffId)), [date, remoteData, staffId, store]);
+  const slots = useMemo(
+    () => (remoteData || isDemo ? buildSimpleSlots(data.business.open, data.business.close) : store.availableSlots(date, staffId)),
+    [data.business.close, data.business.open, isDemo, remoteData, staffId, store],
+  );
 
   useEffect(() => {
     loadPublicBusinessData(slug).then((result) => {
@@ -46,13 +50,13 @@ export function PublicBooking({ slug }: { slug: string }) {
       status: "scheduled" as const,
       createdAt: new Date().toISOString(),
     };
-    const savedRemote = await createPublicAppointment(appointment);
-    if (!savedRemote) store.addAppointment(appointment);
+    const savedRemote = isDemo ? false : await createPublicAppointment(appointment);
+    if (!savedRemote && !isDemo) store.addAppointment(appointment);
     setSuccess("Agendamento recebido. Aguarde a confirmacao do estabelecimento.");
     event.currentTarget.reset();
   }
 
-  if (!remoteData && slug !== store.business.slug) {
+  if (!remoteData && !isDemo && slug !== store.business.slug) {
     return (
       <main className="grid min-h-screen place-items-center bg-canvas p-6">
         <Panel>

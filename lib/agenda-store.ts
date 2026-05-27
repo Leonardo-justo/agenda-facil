@@ -125,6 +125,8 @@ const seedData: AgendaData = {
   ],
 };
 
+export const demoAgendaData = seedData;
+
 const seedServiceIds = new Set(seedData.services.map((service) => service.id));
 const seedStaffIds = new Set(seedData.staff.map((person) => person.id));
 const seedAppointmentIds = new Set(seedData.appointments.map((appointment) => appointment.id));
