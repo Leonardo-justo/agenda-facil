@@ -70,9 +70,20 @@ function sectionTitle(section: Section) {
 }
 
 function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
+  const [serviceFilter, setServiceFilter] = useState("all");
+  const [staffFilter, setStaffFilter] = useState("all");
+  const filteredAppointments = useMemo(
+    () =>
+      store.appointments.filter((appointment) => {
+        const byService = serviceFilter === "all" || appointment.serviceId === serviceFilter;
+        const byStaff = staffFilter === "all" || appointment.staffId === staffFilter;
+        return byService && byStaff;
+      }),
+    [serviceFilter, staffFilter, store.appointments],
+  );
   const nextAppointments = useMemo(
-    () => [...store.appointments].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)).slice(0, 5),
-    [store.appointments],
+    () => [...filteredAppointments].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)).slice(0, 5),
+    [filteredAppointments],
   );
 
   return (
@@ -83,6 +94,42 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
         <MetricCard label="Receita prevista" value={money(store.metrics.revenue)} tone="green" />
         <MetricCard label="Plano" value={getPlan(store.business.plan).name} tone="rust" />
       </div>
+      <Panel className="mt-4">
+        <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-3 max-lg:grid-cols-1">
+          <label>
+            Filtrar por servico
+            <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
+              <option value="all">Todos os servicos</option>
+              {store.services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Filtrar por profissional
+            <select value={staffFilter} onChange={(event) => setStaffFilter(event.target.value)}>
+              <option value="all">Todos os profissionais</option>
+              {store.staff.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="min-h-11 rounded-card border border-line px-4 font-black"
+            onClick={() => {
+              setServiceFilter("all");
+              setStaffFilter("all");
+            }}
+          >
+            Limpar filtros
+          </button>
+        </div>
+      </Panel>
       <div className="mt-4 grid grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] gap-4 max-lg:grid-cols-1">
         <Panel>
           <h3 className="mb-4 text-lg font-black">Proximos horarios</h3>
@@ -90,7 +137,7 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
             {nextAppointments.length ? (
               nextAppointments.map((appointment) => <AppointmentMini key={appointment.id} store={store} appointmentId={appointment.id} />)
             ) : (
-              <EmptyState>Nenhum horario ainda. Cadastre servicos e equipe para comecar a receber agendamentos.</EmptyState>
+              <EmptyState>Nenhum horario encontrado para os filtros atuais.</EmptyState>
             )}
           </div>
         </Panel>
@@ -98,10 +145,14 @@ function Dashboard({ store }: { store: ReturnType<typeof useAgendaStore> }) {
           <h3 className="mb-4 text-lg font-black">Resumo por profissional</h3>
           <div className="grid gap-3">
             {store.staff.length ? (
-              store.staff.map((person) => (
+              store.staff
+                .filter((person) => staffFilter === "all" || person.id === staffFilter)
+                .map((person) => (
                 <div key={person.id} className="rounded-card border border-line p-3">
                   <strong>{person.name}</strong>
-                  <p className="text-sm text-muted">{store.appointments.filter((item) => item.staffId === person.id).length} horarios registrados</p>
+                  <p className="text-sm text-muted">
+                    {filteredAppointments.filter((item) => item.staffId === person.id).length} horarios registrados
+                  </p>
                 </div>
               ))
             ) : (
